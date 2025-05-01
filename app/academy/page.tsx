@@ -1,30 +1,37 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "DiviSwap Academy",
-  description: "Learn about DeFi and DiviSwap",
+  title: "Academy - DiviSwap",
+  description: "Learn about DeFi and cryptocurrency on DiviSwap Academy",
 }
 
-// This uses Next.js's static redirects which work during prerendering
 export default function AcademyPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-      <h1 className="text-2xl font-bold mb-4">Redirecting to DiviSwap Academy...</h1>
-      <p>If you are not redirected automatically, please click the link below:</p>
-      <a href="https://academy.diviswap.io" className="text-blue-500 hover:text-blue-700 mt-4">
-        Go to DiviSwap Academy
-      </a>
-
-      {/* Client-side redirect script that will run after hydration */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            if (typeof window !== 'undefined') {
-              window.location.href = 'https://academy.diviswap.io';
-            }
-          `,
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        padding: "20px",
+        textAlign: "center",
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>DiviSwap Academy</h1>
+      <p style={{ marginBottom: "2rem" }}>You are being redirected to the DiviSwap Academy...</p>
+      <a
+        href="https://academy.diviswap.io"
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#3b82f6",
+          color: "white",
+          borderRadius: "5px",
+          textDecoration: "none",
         }}
-      />
+      >
+        Go to Academy
+      </a>
     </div>
   )
 }

@@ -1,4 +1,12 @@
-export default function NotFound() {
+"use client"
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
   return (
     <div
       style={{
@@ -6,25 +14,25 @@ export default function NotFound() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        height: "100vh",
+        minHeight: "60vh",
         padding: "20px",
         textAlign: "center",
       }}
     >
-      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>404 - Page Not Found</h1>
-      <p style={{ marginBottom: "2rem" }}>The page you are looking for does not exist.</p>
-      <a
-        href="/"
+      <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>Something went wrong!</h2>
+      <button
+        onClick={() => reset()}
         style={{
           padding: "10px 20px",
           backgroundColor: "#3b82f6",
           color: "white",
           borderRadius: "5px",
-          textDecoration: "none",
+          border: "none",
+          cursor: "pointer",
         }}
       >
-        Return Home
-      </a>
+        Try again
+      </button>
     </div>
   )
 }

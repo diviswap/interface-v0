@@ -6,7 +6,7 @@ import Link from "next/link"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Rocket, Menu, X, MoreHorizontal } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { NavBar } from "@/components/ui/tubelight-navbar"
@@ -16,14 +16,19 @@ export function EnhancedNavbar() {
   const { account, isConnected, provider } = useWeb3()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [balance, setBalance] = useState<string>("0")
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
+  const [windowWidth, setWindowWidth] = useState(0)
+
+  // Initialize windowWidth after component mounts
+  useEffect(() => {
+    setWindowWidth(window.innerWidth)
+  }, [])
 
   // Navigation items for the tubelight navbar
   const navItems = [
     { name: "Home", url: "/", icon: Home },
     { name: "Swap", url: "/swap", icon: ArrowLeftRight },
     { name: "Pool", url: "/pool", icon: Droplets },
-//    { name: "Launchpad", url: "/launchpad", icon: Rocket },
+    //    { name: "Launchpad", url: "/launchpad", icon: Rocket },
     { name: "Charts", url: "/charts", icon: LineChart },
     { name: "Academy", url: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]

@@ -41,15 +41,21 @@ export function NavBar({ items, className, onItemClick }: NavBarProps) {
       // Default to first item if no match
       setActiveTab(items[0].name)
     }
+  }, [pathname, items])
 
+  // Separate useEffect for browser-only code
+  useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
 
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [pathname, items])
+    // Only run in browser environment
+    if (typeof window !== "undefined") {
+      handleResize()
+      window.addEventListener("resize", handleResize)
+      return () => window.removeEventListener("resize", handleResize)
+    }
+  }, [])
 
   // Calculate responsive padding based on number of items
   const getPadding = () => {

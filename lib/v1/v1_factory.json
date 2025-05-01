@@ -1,0 +1,12 @@
+[
+  {
+    "name": "NewExchange",
+    "inputs": [
+      { "type": "address", "name": "token", "indexed": true },
+      { "type": "address", "name": "exchange", "indexed": true }
+    ],
+    "anonymous": false,
+    "type": "event"
+  }
+  // ... (incluye el resto del ABI de la factory aquí)
+]

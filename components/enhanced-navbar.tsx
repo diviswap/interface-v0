@@ -6,7 +6,7 @@ import Link from "next/link"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Rocket, Menu, X, MoreHorizontal } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { NavBar } from "@/components/ui/tubelight-navbar"
@@ -16,20 +16,14 @@ export function EnhancedNavbar() {
   const { account, isConnected, provider } = useWeb3()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [balance, setBalance] = useState<string>("0")
-  const [windowWidth, setWindowWidth] = useState(0)
-
-  // Initialize windowWidth after component mounts
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setWindowWidth(window.innerWidth)
-    }
-  }, [])
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
 
   // Navigation items for the tubelight navbar
   const navItems = [
     { name: "Home", url: "/", icon: Home },
     { name: "Swap", url: "/swap", icon: ArrowLeftRight },
     { name: "Pool", url: "/pool", icon: Droplets },
+//    { name: "Launchpad", url: "/launchpad", icon: Rocket },
     { name: "Charts", url: "/charts", icon: LineChart },
     { name: "Academy", url: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]
@@ -43,10 +37,8 @@ export function EnhancedNavbar() {
   }
 
   const visibleItemCount = getVisibleItemCount(windowWidth)
-  // Ensure we don't slice beyond the array length
-  const safeVisibleCount = Math.min(visibleItemCount, navItems.length)
-  const visibleItems = navItems.slice(0, safeVisibleCount)
-  const overflowItems = navItems.slice(safeVisibleCount)
+  const visibleItems = navItems.slice(0, visibleItemCount)
+  const overflowItems = navItems.slice(visibleItemCount)
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -70,20 +62,16 @@ export function EnhancedNavbar() {
 
     // Handle window resize
     const handleResize = () => {
-      if (typeof window !== "undefined") {
-        setWindowWidth(window.innerWidth)
-      }
+      setWindowWidth(window.innerWidth)
     }
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("balanceUpdated", handleBalanceUpdate)
-      window.addEventListener("resize", handleResize)
+    window.addEventListener("balanceUpdated", handleBalanceUpdate)
+    window.addEventListener("resize", handleResize)
 
-      // Clean up listeners when component unmounts
-      return () => {
-        window.removeEventListener("balanceUpdated", handleBalanceUpdate)
-        window.removeEventListener("resize", handleResize)
-      }
+    // Clean up listeners when component unmounts
+    return () => {
+      window.removeEventListener("balanceUpdated", handleBalanceUpdate)
+      window.removeEventListener("resize", handleResize)
     }
   }, [isConnected, provider, account])
 
@@ -107,9 +95,7 @@ export function EnhancedNavbar() {
         <div className="hidden md:flex flex-1 justify-center">
           <div className="flex items-center">
             {/* Visible navigation items */}
-            {visibleItems.length > 0 && (
-              <NavBar items={visibleItems} className="static transform-none mb-0 mt-0 pt-0" />
-            )}
+            <NavBar items={visibleItems} className="static transform-none mb-0 mt-0 pt-0" />
 
             {/* Overflow menu for additional items */}
             {overflowItems.length > 0 && (

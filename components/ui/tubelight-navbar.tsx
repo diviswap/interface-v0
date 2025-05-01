@@ -26,11 +26,6 @@ export function NavBar({ items, className, onItemClick }: NavBarProps) {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    // Make sure items array exists and has elements before proceeding
-    if (!items || items.length === 0) {
-      return
-    }
-
     // Set active tab based on current pathname
     const currentPath = items.find(
       (item) => pathname === item.url || (pathname.startsWith(item.url) && item.url !== "/"),
@@ -43,30 +38,22 @@ export function NavBar({ items, className, onItemClick }: NavBarProps) {
       const homeItem = items.find((item) => item.url === "/")
       if (homeItem) setActiveTab(homeItem.name)
     } else {
-      // Default to first item if no match, but check if items[0] exists first
-      if (items[0]) {
-        setActiveTab(items[0].name)
-      }
+      // Default to first item if no match
+      setActiveTab(items[0].name)
     }
-  }, [pathname, items])
 
-  // Separate useEffect for browser-only code
-  useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
 
-    // Only run in browser environment
-    if (typeof window !== "undefined") {
-      handleResize()
-      window.addEventListener("resize", handleResize)
-      return () => window.removeEventListener("resize", handleResize)
-    }
-  }, [])
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [pathname, items])
 
   // Calculate responsive padding based on number of items
   const getPadding = () => {
-    const itemCount = items?.length || 0
+    const itemCount = items.length
     if (itemCount <= 3) return "px-6"
     if (itemCount <= 4) return "px-5"
     if (itemCount <= 5) return "px-4"
@@ -75,27 +62,17 @@ export function NavBar({ items, className, onItemClick }: NavBarProps) {
 
   const padding = getPadding()
 
-  // If items is undefined or empty, don't render anything
-  if (!items || items.length === 0) {
-    return null
-  }
-
   return (
     <div className={cn("z-50", className)}>
       <div className="flex items-center gap-1 sm:gap-2 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
-          // Skip rendering if item is undefined or missing required properties
-          if (!item || !item.name) {
-            return null
-          }
-
           const Icon = item.icon
           const isActive = activeTab === item.name
 
           return (
             <Link
               key={item.name}
-              href={item.url || "#"}
+              href={item.url}
               target={item.external ? "_blank" : undefined}
               rel={item.external ? "noopener noreferrer" : undefined}
               onClick={() => {
@@ -110,7 +87,9 @@ export function NavBar({ items, className, onItemClick }: NavBarProps) {
               )}
             >
               <span className="hidden md:inline">{item.name}</span>
-              <span className="md:hidden">{Icon && <Icon size={18} strokeWidth={2.5} />}</span>
+              <span className="md:hidden">
+                <Icon size={18} strokeWidth={2.5} />
+              </span>
               {isActive && (
                 <motion.div
                   layoutId="lamp"

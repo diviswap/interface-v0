@@ -6,7 +6,7 @@ import Link from "next/link"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Rocket, Menu, X, MoreHorizontal } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { NavBar } from "@/components/ui/tubelight-navbar"
@@ -16,14 +16,14 @@ export function EnhancedNavbar() {
   const { account, isConnected, provider } = useWeb3()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [balance, setBalance] = useState<string>("0")
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
+  const [windowWidth, setWindowWidth] = useState(0)
 
   // Navigation items for the tubelight navbar
   const navItems = [
     { name: "Home", url: "/", icon: Home },
     { name: "Swap", url: "/swap", icon: ArrowLeftRight },
     { name: "Pool", url: "/pool", icon: Droplets },
-//    { name: "Launchpad", url: "/launchpad", icon: Rocket },
+    //    { name: "Launchpad", url: "/launchpad", icon: Rocket },
     { name: "Charts", url: "/charts", icon: LineChart },
     { name: "Academy", url: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]
@@ -35,6 +35,24 @@ export function EnhancedNavbar() {
     if (width >= 768) return 4 // md screens
     return 0 // mobile - handled separately
   }
+
+  // Initialize these values in useEffect to avoid SSR issues
+  useEffect(() => {
+    // Set initial window width
+    setWindowWidth(window.innerWidth)
+
+    // Handle window resize
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+
+    window.addEventListener("resize", handleResize)
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener("resize", handleResize)
+    }
+  }, [])
 
   const visibleItemCount = getVisibleItemCount(windowWidth)
   const visibleItems = navItems.slice(0, visibleItemCount)
@@ -60,19 +78,16 @@ export function EnhancedNavbar() {
       fetchBalance()
     }
 
-    // Handle window resize
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+    if (typeof window !== "undefined") {
+      window.addEventListener("balanceUpdated", handleBalanceUpdate)
+
+      // Clean up listeners when component unmounts
+      return () => {
+        window.removeEventListener("balanceUpdated", handleBalanceUpdate)
+      }
     }
 
-    window.addEventListener("balanceUpdated", handleBalanceUpdate)
-    window.addEventListener("resize", handleResize)
-
-    // Clean up listeners when component unmounts
-    return () => {
-      window.removeEventListener("balanceUpdated", handleBalanceUpdate)
-      window.removeEventListener("resize", handleResize)
-    }
+    return undefined
   }, [isConnected, provider, account])
 
   return (

@@ -34,6 +34,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<string | null>(null)
   const [chainId, setChainId] = useState<number | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   // Chiliz Chain configuration
   const CHILIZ_CHAIN_ID = 88888 // Replace with actual Chiliz Chain ID
@@ -116,7 +117,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Añadir esta función para refrescar el balance
   const refreshBalance = async () => {
-    if (isConnected && provider && account) {
+    if (isConnected && provider && account && typeof window !== "undefined") {
       try {
         // Emitir un evento personalizado que otros componentes puedan escuchar
         // Usar setTimeout para asegurar que el evento se emita fuera del ciclo de renderizado actual
@@ -130,8 +131,13 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Set mounted state to true after component mounts
   useEffect(() => {
-    if (typeof window !== "undefined" && window.ethereum) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.ethereum && mounted) {
       // Handle account changes
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length === 0) {
@@ -171,7 +177,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [account])
+  }, [account, mounted])
 
   return (
     <Web3Context.Provider

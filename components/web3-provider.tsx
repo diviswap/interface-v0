@@ -196,3 +196,6 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     </Web3Context.Provider>
   )
 }
+
+// Exportar el componente como default para dynamic import
+export default { Web3Provider }

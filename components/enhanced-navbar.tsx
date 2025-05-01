@@ -229,3 +229,6 @@ export function EnhancedNavbar() {
     </header>
   )
 }
+
+// Exportar el componente como default para dynamic import
+export default { EnhancedNavbar }

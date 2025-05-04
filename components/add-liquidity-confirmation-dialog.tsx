@@ -29,6 +29,16 @@ export function AddLiquidityConfirmationDialog({
 }: AddLiquidityConfirmationDialogProps) {
   const explorerUrl = txHash ? `https://chiliscan.com/tx/${txHash}` : null
 
+  console.log("Rendering confirmation dialog with props:", {
+    isOpen,
+    token0: token0?.symbol,
+    token1: token1?.symbol,
+    amount0,
+    amount1,
+    txHash,
+    poolShare,
+  })
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none rounded-xl shadow-lg bg-gradient-to-b from-background to-background/95 backdrop-blur-sm text-card-foreground max-h-[90vh] overflow-y-auto">

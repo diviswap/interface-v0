@@ -360,6 +360,7 @@ export function AddLiquidityForm({
   }
 
   // Modificar la función handleAddLiquidity para actualizar el balance después de añadir liquidez
+  // Replace the existing handleAddLiquidity function with this improved version:
   const handleAddLiquidity = async () => {
     if (!isConnected || !signer || !token0 || !token1) {
       toast({
@@ -384,8 +385,6 @@ export function AddLiquidityForm({
 
     setIsAdding(true)
 
-    // Modificar la función handleAddLiquidity para mostrar la confirmación
-    // Reemplazar el bloque try-catch-finally existente con este:
     try {
       const router = getRouterContract(signer)
       const deadlineTime = Math.floor(Date.now() / 1000) + 20 * 60 // 20 minutes
@@ -399,8 +398,20 @@ export function AddLiquidityForm({
 
       let tx
 
+      console.log("Adding liquidity with parameters:", {
+        token0: token0.address,
+        token1: token1.address,
+        amount0Wei: amount0Wei.toString(),
+        amount1Wei: amount1Wei.toString(),
+        amount0Min: amount0Min.toString(),
+        amount1Min: amount1Min.toString(),
+        account,
+        deadlineTime,
+      })
+
       // If one of the tokens is native CHZ
       if (token0.address === ethers.ZeroAddress) {
+        console.log("Adding liquidity with ETH as token0")
         tx = await addLiquidityETH(
           router,
           token1.address,
@@ -413,6 +424,7 @@ export function AddLiquidityForm({
           signer,
         )
       } else if (token1.address === ethers.ZeroAddress) {
+        console.log("Adding liquidity with ETH as token1")
         tx = await addLiquidityETH(
           router,
           token0.address,
@@ -426,6 +438,7 @@ export function AddLiquidityForm({
         )
       } else {
         // Both are ERC20 tokens
+        console.log("Adding liquidity with two ERC20 tokens")
         tx = await addLiquidity(
           router,
           token0.address,
@@ -439,6 +452,8 @@ export function AddLiquidityForm({
           signer,
         )
       }
+
+      console.log("Transaction successful:", tx)
 
       // Guardar los detalles para la confirmación
       setConfirmationDetails({
@@ -479,9 +494,26 @@ export function AddLiquidityForm({
       // No reseteamos el formulario aquí, lo haremos cuando se cierre el diálogo
     } catch (error) {
       console.error("Error adding liquidity:", error)
+
+      // Provide more detailed error message
+      let errorMessage = "Failed to add liquidity. Please try again."
+
+      if (error instanceof Error) {
+        console.error("Error details:", error.message)
+
+        // Extract useful information from common error messages
+        if (error.message.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds to complete this transaction."
+        } else if (error.message.includes("user rejected")) {
+          errorMessage = "Transaction was rejected in your wallet."
+        } else if (error.message.includes("gas required exceeds")) {
+          errorMessage = "Transaction would exceed gas limit. Try a smaller amount."
+        }
+      }
+
       toast({
         title: "Error",
-        description: "Failed to add liquidity. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

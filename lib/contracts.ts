@@ -243,6 +243,23 @@ export async function addLiquidity(
   signer: ethers.Signer,
 ) {
   try {
+    console.log("Calling addLiquidity with params:", {
+      tokenA,
+      tokenB,
+      amountADesired: amountADesired.toString(),
+      amountBDesired: amountBDesired.toString(),
+      amountAMin: amountAMin.toString(),
+      amountBMin: amountBMin.toString(),
+      to,
+      deadline,
+    })
+
+    // Get the current gas price from the network
+    const feeData = await signer.provider.getFeeData()
+    const gasPrice = feeData.gasPrice || BigInt(20000000000) // Default to 20 gwei if null
+
+    console.log("Current gas price:", gasPrice.toString())
+
     const tx = await router.addLiquidity(
       tokenA,
       tokenB,
@@ -253,13 +270,24 @@ export async function addLiquidity(
       to,
       deadline,
       {
-        gasLimit: 300000,
+        gasLimit: 500000, // Increased gas limit
+        gasPrice: gasPrice, // Use current gas price
         type: 0, // Explicitly set to legacy transaction type
       },
     )
-    return await tx.wait()
+
+    console.log("Transaction sent:", tx.hash)
+    const receipt = await tx.wait()
+    console.log("Transaction confirmed:", receipt)
+    return receipt
   } catch (error) {
     console.error("Error adding liquidity:", error)
+    if (error.reason) {
+      console.error("Error reason:", error.reason)
+    }
+    if (error.code) {
+      console.error("Error code:", error.code)
+    }
     throw error
   }
 }
@@ -276,14 +304,41 @@ export async function addLiquidityETH(
   signer: ethers.Signer,
 ) {
   try {
+    console.log("Calling addLiquidityETH with params:", {
+      token,
+      amountTokenDesired: amountTokenDesired.toString(),
+      amountTokenMin: amountTokenMin.toString(),
+      amountETHMin: amountETHMin.toString(),
+      to,
+      deadline,
+      ethValue: ethValue.toString(),
+    })
+
+    // Get the current gas price from the network
+    const feeData = await signer.provider.getFeeData()
+    const gasPrice = feeData.gasPrice || BigInt(20000000000) // Default to 20 gwei if null
+
+    console.log("Current gas price:", gasPrice.toString())
+
     const tx = await router.addLiquidityETH(token, amountTokenDesired, amountTokenMin, amountETHMin, to, deadline, {
       value: ethValue,
-      gasLimit: 300000,
+      gasLimit: 500000, // Increased gas limit
+      gasPrice: gasPrice, // Use current gas price
       type: 0, // Explicitly set to legacy transaction type
     })
-    return await tx.wait()
+
+    console.log("Transaction sent:", tx.hash)
+    const receipt = await tx.wait()
+    console.log("Transaction confirmed:", receipt)
+    return receipt
   } catch (error) {
     console.error("Error adding liquidity ETH:", error)
+    if (error.reason) {
+      console.error("Error reason:", error.reason)
+    }
+    if (error.code) {
+      console.error("Error code:", error.code)
+    }
     throw error
   }
 }

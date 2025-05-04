@@ -101,6 +101,7 @@ export async function checkAllowance(
   }
 }
 
+// Update the approveToken function to use legacy transaction format
 export async function approveToken(
   tokenAddress: string,
   spenderAddress: string,
@@ -110,7 +111,9 @@ export async function approveToken(
   const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
 
   try {
-    const tx = await tokenContract.approve(spenderAddress, amount)
+    const tx = await tokenContract.approve(spenderAddress, amount, {
+      type: 0, // Explicitly set to legacy transaction type
+    })
     return await tx.wait()
   } catch (error) {
     console.error("Error approving token:", error)
@@ -156,6 +159,7 @@ export async function getAmountOut(
   }
 }
 
+// Update the swapExactTokensForTokens function to use legacy transaction format
 export async function swapExactTokensForTokens(
   router: ethers.Contract,
   amountIn: bigint,
@@ -166,7 +170,11 @@ export async function swapExactTokensForTokens(
   signer: ethers.Signer,
 ) {
   try {
-    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, to, deadline, { gasLimit: 300000 })
+    // Use legacy transaction format with gasPrice instead of type 2 transaction
+    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, to, deadline, {
+      gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
+    })
     return await tx.wait()
   } catch (error) {
     console.error("Error swapping tokens:", error)
@@ -174,6 +182,7 @@ export async function swapExactTokensForTokens(
   }
 }
 
+// Update the swapExactETHForTokens function to use legacy transaction format
 export async function swapExactETHForTokens(
   router: ethers.Contract,
   amountIn: bigint,
@@ -184,9 +193,11 @@ export async function swapExactETHForTokens(
   signer: ethers.Signer,
 ) {
   try {
+    // Use legacy transaction format with gasPrice instead of type 2 transaction
     const tx = await router.swapExactETHForTokens(amountOutMin, path, to, deadline, {
       value: amountIn,
       gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
     })
     return await tx.wait()
   } catch (error) {
@@ -195,6 +206,7 @@ export async function swapExactETHForTokens(
   }
 }
 
+// Update the swapExactTokensForETH function to use legacy transaction format
 export async function swapExactTokensForETH(
   router: ethers.Contract,
   amountIn: bigint,
@@ -205,7 +217,11 @@ export async function swapExactTokensForETH(
   signer: ethers.Signer,
 ) {
   try {
-    const tx = await router.swapExactTokensForETH(amountIn, amountOutMin, path, to, deadline, { gasLimit: 300000 })
+    // Use legacy transaction format with gasPrice instead of type 2 transaction
+    const tx = await router.swapExactTokensForETH(amountIn, amountOutMin, path, to, deadline, {
+      gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
+    })
     return await tx.wait()
   } catch (error) {
     console.error("Error swapping tokens for ETH:", error)
@@ -213,6 +229,7 @@ export async function swapExactTokensForETH(
   }
 }
 
+// Update the addLiquidity and removeLiquidity functions as well
 export async function addLiquidity(
   router: ethers.Contract,
   tokenA: string,
@@ -235,7 +252,10 @@ export async function addLiquidity(
       amountBMin,
       to,
       deadline,
-      { gasLimit: 300000 },
+      {
+        gasLimit: 300000,
+        type: 0, // Explicitly set to legacy transaction type
+      },
     )
     return await tx.wait()
   } catch (error) {
@@ -259,6 +279,7 @@ export async function addLiquidityETH(
     const tx = await router.addLiquidityETH(token, amountTokenDesired, amountTokenMin, amountETHMin, to, deadline, {
       value: ethValue,
       gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
     })
     return await tx.wait()
   } catch (error) {
@@ -281,6 +302,7 @@ export async function removeLiquidity(
   try {
     const tx = await router.removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline, {
       gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
     })
     return await tx.wait()
   } catch (error) {
@@ -302,6 +324,7 @@ export async function removeLiquidityETH(
   try {
     const tx = await router.removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline, {
       gasLimit: 300000,
+      type: 0, // Explicitly set to legacy transaction type
     })
     return await tx.wait()
   } catch (error) {

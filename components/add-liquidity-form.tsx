@@ -11,10 +11,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { useWeb3 } from "@/components/web3-provider"
 import { TokenSelector } from "@/components/token-selector"
 import { COMMON_TOKENS, ROUTER_ADDRESS, ERC20_ABI, WCHZ_ADDRESS, TOKEN_LIST, FACTORY_ADDRESS } from "@/lib/constants"
-import { getRouterContract, checkAllowance, approveToken, addLiquidity, addLiquidityETH } from "@/lib/contracts"
+import { checkAllowance, approveToken, addLiquidity, addLiquidityETH } from "@/lib/contracts"
 import { formatCurrency } from "@/lib/utils"
 import { getPairAddress } from "@/lib/swap-utils"
-// Añadir la importación del diálogo de confirmación después de las importaciones existentes
 import { AddLiquidityConfirmationDialog } from "@/components/add-liquidity-confirmation-dialog"
 
 interface AddLiquidityFormProps {
@@ -46,7 +45,6 @@ export function AddLiquidityForm({
   const [isCheckingPair, setIsCheckingPair] = useState(false)
   const [poolShare, setPoolShare] = useState("0")
   const [activeInput, setActiveInput] = useState(0) // 0 for token0, 1 for token1
-  // Añadir estos estados después de los estados existentes (después de const [activeInput, setActiveInput] = useState(0))
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
   const [confirmationDetails, setConfirmationDetails] = useState({
@@ -150,7 +148,6 @@ export function AddLiquidityForm({
             try {
               const amountIn = ethers.parseUnits(amount0, token0.decimals)
 
-              // En la sección donde se calcula amount1 basado en amount0 (cuando activeInput === 0)
               if (reserve0 > 0 && reserve1 > 0) {
                 const estimatedAmount = (amountIn * reserve1) / reserve0
                 // Usar un valor temporal para evitar actualizaciones infinitas
@@ -174,7 +171,6 @@ export function AddLiquidityForm({
             try {
               const amountIn = ethers.parseUnits(amount1, token1.decimals)
 
-              // Y en la sección donde se calcula amount0 basado en amount1 (cuando activeInput === 1)
               if (reserve0 > 0 && reserve1 > 0) {
                 const estimatedAmount = (amountIn * reserve0) / reserve1
                 // Usar un valor temporal para evitar actualizaciones infinitas
@@ -333,9 +329,9 @@ export function AddLiquidityForm({
     setIsApproving(true)
 
     try {
-      // Aprobar exactamente la cantidad necesaria en lugar de un monto ilimitado
+      // Aprobar exactamente la cantidad necesaria
       const amountWei = ethers.parseUnits(amount, token.decimals)
-      const tx = await approveToken(token.address, ROUTER_ADDRESS, amountWei, signer)
+      await approveToken(token.address, ROUTER_ADDRESS, amountWei, signer)
 
       toast({
         title: "Success",
@@ -359,8 +355,6 @@ export function AddLiquidityForm({
     }
   }
 
-  // Modificar la función handleAddLiquidity para actualizar el balance después de añadir liquidez
-  // Replace the existing handleAddLiquidity function with this improved version:
   const handleAddLiquidity = async () => {
     if (!isConnected || !signer || !token0 || !token1) {
       toast({
@@ -386,7 +380,6 @@ export function AddLiquidityForm({
     setIsAdding(true)
 
     try {
-      const router = getRouterContract(signer)
       const deadlineTime = Math.floor(Date.now() / 1000) + 20 * 60 // 20 minutes
 
       const amount0Wei = ethers.parseUnits(amount0, token0.decimals)
@@ -395,8 +388,6 @@ export function AddLiquidityForm({
       // Calculate minimum amounts (with 1% slippage)
       const amount0Min = (amount0Wei * BigInt(99)) / BigInt(100)
       const amount1Min = (amount1Wei * BigInt(99)) / BigInt(100)
-
-      let tx
 
       console.log("Adding liquidity with parameters:", {
         token0: token0.address,
@@ -409,11 +400,12 @@ export function AddLiquidityForm({
         deadlineTime,
       })
 
+      let tx
+
       // If one of the tokens is native CHZ
       if (token0.address === ethers.ZeroAddress) {
         console.log("Adding liquidity with ETH as token0")
         tx = await addLiquidityETH(
-          router,
           token1.address,
           amount1Wei,
           amount1Min,
@@ -426,7 +418,6 @@ export function AddLiquidityForm({
       } else if (token1.address === ethers.ZeroAddress) {
         console.log("Adding liquidity with ETH as token1")
         tx = await addLiquidityETH(
-          router,
           token0.address,
           amount0Wei,
           amount0Min,
@@ -440,7 +431,6 @@ export function AddLiquidityForm({
         // Both are ERC20 tokens
         console.log("Adding liquidity with two ERC20 tokens")
         tx = await addLiquidity(
-          router,
           token0.address,
           token1.address,
           amount0Wei,
@@ -521,7 +511,6 @@ export function AddLiquidityForm({
     }
   }
 
-  // Añadir esta función para manejar el cierre del diálogo
   const handleConfirmationClose = () => {
     setIsConfirmationOpen(false)
     // Resetear formulario después de cerrar el diálogo
@@ -553,9 +542,6 @@ export function AddLiquidityForm({
     }
   }
 
-  // Modificar las funciones handleAmount0Change y handleAmount1Change para evitar actualizaciones innecesarias
-
-  // Reemplazar la función handleAmount0Change con esta versión:
   const handleAmount0Change = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setAmount0(value)
@@ -566,7 +552,6 @@ export function AddLiquidityForm({
     }
   }
 
-  // Reemplazar la función handleAmount1Change con esta versión:
   const handleAmount1Change = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setAmount1(value)
@@ -577,7 +562,6 @@ export function AddLiquidityForm({
     }
   }
 
-  // Añadir el componente de diálogo justo antes del return final
   return (
     <Card>
       <CardHeader>

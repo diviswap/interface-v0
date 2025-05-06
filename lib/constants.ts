@@ -3,18 +3,21 @@ import { ethers } from "ethers"
 // Network
 export const CHILIZ_CHAIN_ID = 88888 // Replace with the actual Chiliz Chain ID
 
-// Contract addresses
-export const FACTORY_ADDRESS = "0xBDd9c322Ecf401E09C9D2Dca3be46a7E45d48BB1"
-export const ROUTER_ADDRESS = "0xC4E14363A01B7725532e099a67DbD17617FB7485"
-export const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F" // FanX Router Address
-export const KAYEN_FACTORY_ADDRESS = "0x7Bc2Ff3a7e4a9B2B75E1F9d2e5B0F0E9E4D3F8a9" // FanX Factory Address
+// Contract addresses - Usar SOLO las direcciones de DiviSwap
+export const FACTORY_ADDRESS = "0xBDd9c322Ecf401E09C9D2Dca3be46a7E45d48BB1" // DiviSwap Factory
+export const ROUTER_ADDRESS = "0xC4E14363A01B7725532e099a67DbD17617FB7485" // DiviSwap Router
+
+// Kayen Router and Factory Addresses
+export const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F"
+export const KAYEN_FACTORY_ADDRESS = "0x7Bc2Ff3a7e4a9B2B75E1F9d2e5B0F0E9E4D3F8a9"
+
 export const WCHZ_ADDRESS = "0x677F7e16C7Dd57be1D4C8aD1244883214953DC47"
 // Add this line to fix the error - WETH_ADDRESS is an alias for WCHZ_ADDRESS in Chiliz Chain
 export const WETH_ADDRESS = WCHZ_ADDRESS
 
 // Token List
 export const TOKEN_LIST = [
-  {  
+  {
     chainId: 88888,
     address: "0x0000000000000000000000000000000000000000", // Native CHZ
     name: "Chiliz",
@@ -596,11 +599,6 @@ export const TOKEN_LIST = [
   },
 ]
 
-// Replace the fetchTokenList function with a function that returns the static list
-export function fetchTokenList() {
-  return Promise.resolve(TOKEN_LIST)
-}
-
 // Common tokens (most frequently used)
 export const COMMON_TOKENS = [
   TOKEN_LIST[0], // CHZ (Native)
@@ -613,6 +611,11 @@ export const COMMON_TOKENS = [
 
 // Default token (CHZ)
 export const DEFAULT_TOKEN = TOKEN_LIST[0]
+
+// Replace the fetchTokenList function with a function that returns the static list
+export function fetchTokenList() {
+  return Promise.resolve(TOKEN_LIST)
+}
 
 // ABIs
 export const FACTORY_ABI = [
@@ -645,7 +648,7 @@ export const ROUTER_ABI = [
   "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
   "function swapTokensForExactTokens(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
   "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
-  "function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+  "function swapTokensForExactETH(uint amountOut, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
   "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
   "function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
 

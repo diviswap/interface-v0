@@ -18,7 +18,7 @@ import Image from "next/image"
 import { AlertTriangle } from "lucide-react"
 
 // Presale contract address on Chiliz Chain
-const PRESALE_CONTRACT_ADDRESS = "0x6F9e228813380e00a9A5CE49207B03bD283Cd80E" // FintSport Token Presale Contract
+const PRESALE_CONTRACT_ADDRESS = "0xD11AA4b7a626A25Bb66e835619AC59345A289d49" // FintSport Token Presale Contract
 const USDC_ADDRESS = "0xa37936f56249965d407e39347528a1a91eb1cbef"
 const USDT_ADDRESS = "0x14a634bf2d5be1c6ad7790d958e748174d8a2d43"
 const WCHZ_ADDRESS = "0x677f7e16c7dd57be1d4c8ad1244883214953dc47"

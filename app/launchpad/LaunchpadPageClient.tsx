@@ -18,7 +18,7 @@ import Image from "next/image"
 import { AlertTriangle } from "lucide-react"
 
 // Presale contract address on Chiliz Chain
-const PRESALE_CONTRACT_ADDRESS = "0xD11AA4b7a626A25Bb66e835619AC59345A289d49" // FintSport Token Presale Contract
+const PRESALE_CONTRACT_ADDRESS = "0x0c19d6F5d993031ABa0916894009E34e6964AA88" // FintSport Token Presale Contract
 const USDC_ADDRESS = "0xa37936f56249965d407e39347528a1a91eb1cbef"
 const USDT_ADDRESS = "0x14a634bf2d5be1c6ad7790d958e748174d8a2d43"
 const WCHZ_ADDRESS = "0x677f7e16c7dd57be1d4c8ad1244883214953dc47"
@@ -50,11 +50,15 @@ function LaunchpadPage() {
     const initContract = async () => {
       if (provider) {
         try {
+          console.log("Initializing presale contract with address:", PRESALE_CONTRACT_ADDRESS)
           const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PresaleABI, provider)
           setPresaleContract(contract)
 
           // Get presale stats
+          console.log("Fetching presale stats...")
           const stats = await contract.getPresaleStats()
+          console.log("Raw presale stats:", stats)
+
           setPresaleStats({
             endTime: Number(stats.endTime),
             totalTokens: Number(ethers.formatUnits(stats.totalTokens, 18)),
@@ -65,9 +69,11 @@ function LaunchpadPage() {
 
           // Check if presale has ended
           const ended = await contract.isPresaleEnded()
+          console.log("Presale ended:", ended)
           setIsPresaleEnded(ended)
 
           setIsLoading(false)
+          console.log("Presale contract initialized successfully")
         } catch (error) {
           console.error("Error initializing presale contract:", error)
           toast({
@@ -87,13 +93,17 @@ function LaunchpadPage() {
     const fetchUserInfo = async () => {
       if (presaleContract && account) {
         try {
+          console.log("Fetching user info for account:", account)
           const info = await presaleContract.getUserInfo(account)
+          console.log("Raw user info:", info)
+
           setUserInfo({
             tokenBalance: Number(ethers.formatUnits(info[0], 18)),
             usdcFromChzSwap: Number(ethers.formatUnits(info[1], 6)),
             chzPaid: Number(ethers.formatUnits(info[2], 18)),
             stableCoinDirectContribution: Number(ethers.formatUnits(info[3], 6)),
           })
+          console.log("User info updated successfully")
         } catch (error) {
           console.error("Error fetching user info:", error)
         }
@@ -106,6 +116,17 @@ function LaunchpadPage() {
   // Calculate progress percentage
   const progressPercentage =
     presaleStats.totalTokens > 0 ? (presaleStats.soldTokens / presaleStats.totalTokens) * 100 : 0
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading presale information...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -224,6 +245,7 @@ function LaunchpadPage() {
                   // Actualizar estadísticas de la preventa
                   if (presaleContract) {
                     try {
+                      console.log("Updating presale statistics after purchase...")
                       // Obtener estadísticas actualizadas
                       const stats = await presaleContract.getPresaleStats()
                       setPresaleStats({
@@ -249,12 +271,13 @@ function LaunchpadPage() {
                         title: "Statistics Updated",
                         description: "Presale statistics have been updated with your contribution.",
                       })
+                      console.log("Presale statistics updated successfully")
                     } catch (error) {
                       console.error("Error updating presale statistics:", error)
                       toast({
                         title: "Warning",
                         description: "Could not update statistics. Please refresh the page.",
-                        variant: "warning",
+                        variant: "destructive",
                       })
                     }
                   }

@@ -1,4 +1,4 @@
-export const PresaleABI = [
+export const PRESALE_ABI = [
   // Events
   "event TokensPurchased(address indexed buyer, uint256 chzAmount, uint256 usdcAmount, uint256 tokensReceived)",
   "event PresaleExtended(uint256 oldEndTime, uint256 newEndTime)",
@@ -26,3 +26,6 @@ export const PresaleABI = [
   "function purchaseTokens() public payable",
   "function purchaseTokensWithStablecoin(uint256 amount, bool isUsdc) external",
 ]
+
+// Alternative export for compatibility
+export const PresaleABI = PRESALE_ABI

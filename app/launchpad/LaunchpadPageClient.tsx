@@ -1,154 +1,268 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ethers } from "ethers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Rocket, Users, Wallet } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Rocket, Clock, Target, Users, DollarSign, TrendingUp } from "lucide-react"
+import { ethers } from "ethers"
 import { PRESALE_ABI } from "@/lib/presale-abi"
-import { PresaleTimer } from "@/components/presale-timer"
-import { PresalePurchase } from "@/components/presale-purchase"
-import { PresaleInfo } from "@/components/presale-info"
 
-// Updated contract address
+// Dirección del contrato de presale actualizada
 const PRESALE_CONTRACT_ADDRESS = "0x0c19d6F5d993031ABa0916894009E34e6964AA88"
 
+interface PresaleStats {
+  totalRaised: string
+  hardCap: string
+  softCap: string
+  rate: string
+  startTime: number
+  endTime: number
+  isActive: boolean
+  isFinalized: boolean
+}
+
 interface UserInfo {
-  totalContributed: string
-  tokensPurchased: string
-  chzContributed: string
-  stablecoinContributed: string
+  contribution: string
+  claimed: boolean
 }
 
 export default function LaunchpadPageClient() {
   const [isConnected, setIsConnected] = useState(false)
   const [account, setAccount] = useState<string>("")
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
-  const [contract, setContract] = useState<ethers.Contract | null>(null)
-  const [presaleStats, setPresaleStats] = useState<any | null>(null)
+  const [purchaseAmount, setPurchaseAmount] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [presaleStats, setPresaleStats] = useState<PresaleStats | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>("")
 
-  // Initialize Web3 connection
+  // Conectar wallet
+  const connectWallet = async () => {
+    try {
+      if (typeof window.ethereum !== "undefined") {
+        console.log("Conectando wallet...")
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        })
+
+        if (accounts.length > 0) {
+          setAccount(accounts[0])
+          setIsConnected(true)
+          console.log("Wallet conectada:", accounts[0])
+          await loadUserInfo(accounts[0])
+        }
+      } else {
+        setError("MetaMask no está instalado")
+      }
+    } catch (error) {
+      console.error("Error conectando wallet:", error)
+      setError("Error conectando wallet")
+    }
+  }
+
+  // Cargar estadísticas de la presale
+  const loadPresaleStats = async () => {
+    try {
+      console.log("Cargando estadísticas de presale...")
+      console.log("Dirección del contrato:", PRESALE_CONTRACT_ADDRESS)
+
+      if (typeof window.ethereum !== "undefined") {
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, provider)
+
+        console.log("Contrato inicializado:", contract.target)
+
+        const [totalRaised, hardCap, softCap, rate, startTime, endTime, isActive, isFinalized] = await Promise.all([
+          contract.totalRaised(),
+          contract.hardCap(),
+          contract.softCap(),
+          contract.rate(),
+          contract.startTime(),
+          contract.endTime(),
+          contract.isActive(),
+          contract.isFinalized(),
+        ])
+
+        const stats: PresaleStats = {
+          totalRaised: ethers.formatEther(totalRaised),
+          hardCap: ethers.formatEther(hardCap),
+          softCap: ethers.formatEther(softCap),
+          rate: rate.toString(),
+          startTime: Number(startTime),
+          endTime: Number(endTime),
+          isActive,
+          isFinalized,
+        }
+
+        console.log("Estadísticas cargadas:", stats)
+        setPresaleStats(stats)
+      }
+    } catch (error) {
+      console.error("Error cargando estadísticas:", error)
+      setError("Error cargando estadísticas de la presale")
+    }
+  }
+
+  // Cargar información del usuario
+  const loadUserInfo = async (userAddress: string) => {
+    try {
+      console.log("Cargando información del usuario:", userAddress)
+
+      if (typeof window.ethereum !== "undefined") {
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, provider)
+
+        const [contribution, claimed] = await Promise.all([
+          contract.contributions(userAddress),
+          contract.claimed(userAddress),
+        ])
+
+        const info: UserInfo = {
+          contribution: ethers.formatEther(contribution),
+          claimed,
+        }
+
+        console.log("Información del usuario cargada:", info)
+        setUserInfo(info)
+      }
+    } catch (error) {
+      console.error("Error cargando información del usuario:", error)
+    }
+  }
+
+  // Comprar tokens
+  const handlePurchase = async () => {
+    if (!purchaseAmount || !isConnected) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      console.log("Iniciando compra de tokens...")
+      console.log("Cantidad:", purchaseAmount, "CHZ")
+
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+      const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
+
+      const value = ethers.parseEther(purchaseAmount)
+      console.log("Valor en wei:", value.toString())
+
+      const tx = await contract.buyTokens({
+        value,
+        gasLimit: 300000,
+      })
+
+      console.log("Transacción enviada:", tx.hash)
+      await tx.wait()
+      console.log("Transacción confirmada")
+
+      // Recargar datos
+      await loadPresaleStats()
+      await loadUserInfo(account)
+      setPurchaseAmount("")
+    } catch (error) {
+      console.error("Error en la compra:", error)
+      setError("Error al comprar tokens")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Reclamar tokens
+  const handleClaim = async () => {
+    if (!isConnected) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      console.log("Reclamando tokens...")
+
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+      const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
+
+      const tx = await contract.claimTokens({
+        gasLimit: 200000,
+      })
+
+      console.log("Transacción de reclamo enviada:", tx.hash)
+      await tx.wait()
+      console.log("Tokens reclamados exitosamente")
+
+      // Recargar información del usuario
+      await loadUserInfo(account)
+    } catch (error) {
+      console.error("Error reclamando tokens:", error)
+      setError("Error al reclamar tokens")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Calcular progreso
+  const getProgress = () => {
+    if (!presaleStats) return 0
+    const raised = Number.parseFloat(presaleStats.totalRaised)
+    const cap = Number.parseFloat(presaleStats.hardCap)
+    return cap > 0 ? (raised / cap) * 100 : 0
+  }
+
+  // Formatear tiempo
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleString()
+  }
+
+  // Verificar si la presale está activa
+  const isPresaleActive = () => {
+    if (!presaleStats) return false
+    const now = Math.floor(Date.now() / 1000)
+    return presaleStats.isActive && now >= presaleStats.startTime && now <= presaleStats.endTime
+  }
+
+  // Inicializar datos
   useEffect(() => {
-    const initializeWeb3 = async () => {
+    const initializeData = async () => {
+      console.log("Inicializando datos de launchpad...")
+      setIsInitializing(true)
+
       try {
-        console.log("Initializing Web3 connection...")
-        setIsLoading(true)
+        await loadPresaleStats()
 
-        if (typeof window !== "undefined" && window.ethereum) {
-          const web3Provider = new ethers.BrowserProvider(window.ethereum)
-          setProvider(web3Provider)
+        // Verificar si ya hay una wallet conectada
+        if (typeof window.ethereum !== "undefined") {
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts",
+          })
 
-          // Check if already connected
-          const accounts = await web3Provider.listAccounts()
           if (accounts.length > 0) {
-            const signer = await web3Provider.getSigner()
-            const address = await signer.getAddress()
-            setAccount(address)
+            setAccount(accounts[0])
             setIsConnected(true)
-
-            console.log("Connected to account:", address)
-            console.log("Initializing contract with address:", PRESALE_CONTRACT_ADDRESS)
-
-            // Initialize contract
-            const presaleContract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
-            setContract(presaleContract)
-
-            // Load initial data
-            await loadPresaleData(presaleContract, address)
+            await loadUserInfo(accounts[0])
           }
         }
       } catch (error) {
-        console.error("Error initializing Web3:", error)
-        setError("Failed to initialize Web3 connection")
+        console.error("Error inicializando:", error)
       } finally {
-        setIsLoading(false)
+        setIsInitializing(false)
       }
     }
 
-    initializeWeb3()
+    initializeData()
   }, [])
 
-  const loadPresaleData = async (contractInstance: ethers.Contract, userAddress: string) => {
-    try {
-      console.log("Loading presale data...")
-
-      // Load presale statistics
-      const stats = await contractInstance.getPresaleStats()
-      console.log("Presale stats:", stats)
-
-      setPresaleStats({
-        endTime: Number(stats[0]),
-        totalTokens: ethers.formatEther(stats[1]),
-        soldTokens: ethers.formatEther(stats[2]),
-        remainingTokens: ethers.formatEther(stats[3]),
-        tokenPrice: ethers.formatUnits(stats[4], 6), // Assuming USDC decimals
-      })
-
-      // Load user information
-      const userStats = await contractInstance.getUserInfo(userAddress)
-      console.log("User stats:", userStats)
-
-      setUserInfo({
-        totalContributed: ethers.formatUnits(userStats[0], 6),
-        tokensPurchased: ethers.formatEther(userStats[1]),
-        chzContributed: ethers.formatEther(userStats[2]),
-        stablecoinContributed: ethers.formatUnits(userStats[3], 6),
-      })
-    } catch (error) {
-      console.error("Error loading presale data:", error)
-      setError("Failed to load presale data")
-    }
-  }
-
-  const connectWallet = async () => {
-    try {
-      if (!window.ethereum) {
-        setError("Please install MetaMask to continue")
-        return
-      }
-
-      console.log("Connecting wallet...")
-      const web3Provider = new ethers.BrowserProvider(window.ethereum)
-      await web3Provider.send("eth_requestAccounts", [])
-
-      const signer = await web3Provider.getSigner()
-      const address = await signer.getAddress()
-
-      setProvider(web3Provider)
-      setAccount(address)
-      setIsConnected(true)
-
-      console.log("Wallet connected:", address)
-
-      // Initialize contract
-      const presaleContract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
-      setContract(presaleContract)
-
-      // Load data
-      await loadPresaleData(presaleContract, address)
-    } catch (error) {
-      console.error("Error connecting wallet:", error)
-      setError("Failed to connect wallet")
-    }
-  }
-
-  const refreshData = async () => {
-    if (contract && account) {
-      await loadPresaleData(contract, account)
-    }
-  }
-
-  if (isLoading) {
+  if (isInitializing) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading Launchpad...</p>
+            <p className="text-muted-foreground">Cargando launchpad...</p>
           </div>
         </div>
       </div>
@@ -156,131 +270,189 @@ export default function LaunchpadPageClient() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-2">
+    <div className="container mx-auto px-4 py-8">
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2 mb-4">
           <Rocket className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-bold">FTK Token Presale</h1>
+          <h1 className="text-4xl font-bold">FTK Token Launchpad</h1>
         </div>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Join the future of decentralized finance with FTK tokens. Early supporters get exclusive benefits and pricing.
+          Participa en la preventa de FTK Token y sé parte del futuro de DiviSwap
         </p>
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-          <p className="text-destructive text-center">{error}</p>
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-6">
+          {error}
         </div>
       )}
 
-      {!isConnected ? (
-        <Card className="max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <Wallet className="h-5 w-5" />
-              Connect Wallet
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Información de la Presale */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Información de la Presale
             </CardTitle>
-            <CardDescription>Connect your wallet to participate in the FTK token presale</CardDescription>
+            <CardDescription>Detalles y estadísticas de la preventa de FTK Token</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={connectWallet} className="w-full" size="lg">
-              Connect Wallet
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left Column - Presale Info */}
-          <div className="space-y-6">
-            {presaleStats && (
+          <CardContent className="space-y-6">
+            {presaleStats ? (
               <>
-                <PresaleTimer endTime={presaleStats.endTime} />
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                  <p className="text-destructive text-center">Presale Stats</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">End Time</Label>
-                      <p className="text-lg font-semibold">{new Date(presaleStats.endTime * 1000).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Total Tokens</Label>
-                      <p className="text-lg font-semibold">
-                        {Number.parseFloat(presaleStats.totalTokens).toLocaleString()} FTK
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Sold Tokens</Label>
-                      <p className="text-lg font-semibold">
-                        {Number.parseFloat(presaleStats.soldTokens).toLocaleString()} FTK
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Remaining Tokens</Label>
-                      <p className="text-lg font-semibold">
-                        {Number.parseFloat(presaleStats.remainingTokens).toLocaleString()} FTK
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Token Price</Label>
-                      <p className="text-lg font-semibold">${Number.parseFloat(presaleStats.tokenPrice).toFixed(2)}</p>
-                    </div>
+                {/* Progreso */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Progreso</span>
+                    <span className="text-sm text-muted-foreground">{getProgress().toFixed(1)}%</span>
+                  </div>
+                  <Progress value={getProgress()} className="h-3" />
+                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                    <span>{presaleStats.totalRaised} CHZ</span>
+                    <span>{presaleStats.hardCap} CHZ</span>
                   </div>
                 </div>
-                <PresaleInfo />
+
+                <Separator />
+
+                {/* Estadísticas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <DollarSign className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <div className="text-2xl font-bold">{presaleStats.totalRaised}</div>
+                    <div className="text-sm text-muted-foreground">CHZ Recaudados</div>
+                  </div>
+
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <TrendingUp className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <div className="text-2xl font-bold">{presaleStats.rate}</div>
+                    <div className="text-sm text-muted-foreground">FTK por CHZ</div>
+                  </div>
+                </div>
+
+                {/* Tiempos */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      <strong>Inicio:</strong> {formatTime(presaleStats.startTime)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      <strong>Fin:</strong> {formatTime(presaleStats.endTime)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Estado */}
+                <div className="flex gap-2">
+                  <Badge variant={isPresaleActive() ? "default" : "secondary"}>
+                    {isPresaleActive() ? "Activa" : "Inactiva"}
+                  </Badge>
+                  {presaleStats.isFinalized && <Badge variant="outline">Finalizada</Badge>}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Cargando información...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Panel de Compra */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Participar en la Presale
+            </CardTitle>
+            <CardDescription>Conecta tu wallet y compra FTK tokens</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!isConnected ? (
+              <div className="text-center py-8">
+                <Button onClick={connectWallet} size="lg" className="w-full">
+                  Conectar Wallet
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground mb-1">Wallet Conectada</div>
+                  <div className="font-mono text-sm">
+                    {account.slice(0, 6)}...{account.slice(-4)}
+                  </div>
+                </div>
+
+                {userInfo && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Tu Contribución:</span>
+                      <span className="font-medium">{userInfo.contribution} CHZ</span>
+                    </div>
+
+                    {Number.parseFloat(userInfo.contribution) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm">Tokens a Recibir:</span>
+                        <span className="font-medium">
+                          {presaleStats
+                            ? (Number.parseFloat(userInfo.contribution) * Number.parseFloat(presaleStats.rate)).toFixed(
+                                2,
+                              )
+                            : "0"}{" "}
+                          FTK
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Separator />
+
+                {isPresaleActive() ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Cantidad a Invertir (CHZ)</label>
+                      <Input
+                        type="number"
+                        placeholder="0.0"
+                        value={purchaseAmount}
+                        onChange={(e) => setPurchaseAmount(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handlePurchase}
+                      disabled={!purchaseAmount || isLoading}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isLoading ? "Procesando..." : "Comprar Tokens"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-4">La presale no está activa en este momento</p>
+
+                    {userInfo &&
+                      Number.parseFloat(userInfo.contribution) > 0 &&
+                      !userInfo.claimed &&
+                      presaleStats?.isFinalized && (
+                        <Button onClick={handleClaim} disabled={isLoading} className="w-full" size="lg">
+                          {isLoading ? "Procesando..." : "Reclamar Tokens"}
+                        </Button>
+                      )}
+                  </div>
+                )}
               </>
             )}
-          </div>
-
-          {/* Right Column - Purchase Interface */}
-          <div className="space-y-6">
-            {contract && presaleStats && (
-              <PresalePurchase
-                contract={contract}
-                presaleStats={presaleStats}
-                userInfo={userInfo}
-                onPurchaseComplete={refreshData}
-              />
-            )}
-
-            {/* User Stats */}
-            {userInfo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Your Contribution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Total Contributed</Label>
-                      <p className="text-lg font-semibold">${userInfo.totalContributed}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Tokens Purchased</Label>
-                      <p className="text-lg font-semibold">
-                        {Number.parseFloat(userInfo.tokensPurchased).toLocaleString()} FTK
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">CHZ Contributed</Label>
-                      <p className="text-lg font-semibold">
-                        {Number.parseFloat(userInfo.chzContributed).toFixed(4)} CHZ
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Stablecoin Contributed</Label>
-                      <p className="text-lg font-semibold">${userInfo.stablecoinContributed}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -1,458 +1,290 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Rocket, Clock, Target, Users, DollarSign, TrendingUp } from "lucide-react"
 import { ethers } from "ethers"
-import { PRESALE_ABI } from "@/lib/presale-abi"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/components/ui/use-toast"
+import { useWeb3 } from "@/components/web3-provider"
+import { formatCurrency } from "@/lib/utils"
+import { PresaleInfo } from "@/components/presale-info"
+import { PresalePurchase } from "@/components/presale-purchase"
+import { PresaleStats } from "@/components/presale-stats"
+import { PresaleTimer } from "@/components/presale-timer"
+import { PresaleABI } from "@/lib/presale-abi"
+import Image from "next/image"
+import { AlertTriangle } from "lucide-react"
 
-// Dirección del contrato de presale actualizada
-const PRESALE_CONTRACT_ADDRESS = "0x0c19d6F5d993031ABa0916894009E34e6964AA88"
+// Presale contract address on Chiliz Chain
+const PRESALE_CONTRACT_ADDRESS = "0x0c19d6F5d993031ABa0916894009E34e6964AA88" // FintSport Token Presale Contract
+const USDC_ADDRESS = "0xa37936f56249965d407e39347528a1a91eb1cbef"
+const USDT_ADDRESS = "0x14a634bf2d5be1c6ad7790d958e748174d8a2d43"
+const WCHZ_ADDRESS = "0x677f7e16c7dd57be1d4c8ad1244883214953dc47"
+const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F"
+const TREASURY_ADDRESS = "0x721c7d63159Fcd18F283F0Dd8aDC30C02E4e087a"
 
-interface PresaleStats {
-  totalRaised: string
-  hardCap: string
-  softCap: string
-  rate: string
-  startTime: number
-  endTime: number
-  isActive: boolean
-  isFinalized: boolean
-}
+function LaunchpadPage() {
+  const { provider, signer, account, isConnected } = useWeb3()
+  const { toast } = useToast()
+  const [presaleContract, setPresaleContract] = useState<ethers.Contract | null>(null)
+  const [presaleStats, setPresaleStats] = useState({
+    endTime: 0,
+    totalTokens: 0,
+    soldTokens: 0,
+    remainingTokens: 0,
+    tokenPrice: 0,
+  })
+  const [userInfo, setUserInfo] = useState({
+    tokenBalance: 0,
+    usdcFromChzSwap: 0,
+    chzPaid: 0,
+    stableCoinDirectContribution: 0,
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isPresaleEnded, setIsPresaleEnded] = useState(false)
+  const [activeTab, setActiveTab] = useState("info")
 
-interface UserInfo {
-  contribution: string
-  claimed: boolean
-}
-
-export default function LaunchpadPageClient() {
-  const [isConnected, setIsConnected] = useState(false)
-  const [account, setAccount] = useState<string>("")
-  const [purchaseAmount, setPurchaseAmount] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(true)
-  const [presaleStats, setPresaleStats] = useState<PresaleStats | null>(null)
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-  const [error, setError] = useState<string>("")
-
-  // Conectar wallet
-  const connectWallet = async () => {
-    try {
-      if (typeof window.ethereum !== "undefined") {
-        console.log("Conectando wallet...")
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        })
-
-        if (accounts.length > 0) {
-          setAccount(accounts[0])
-          setIsConnected(true)
-          console.log("Wallet conectada:", accounts[0])
-          await loadUserInfo(accounts[0])
-        }
-      } else {
-        setError("MetaMask no está instalado")
-      }
-    } catch (error) {
-      console.error("Error conectando wallet:", error)
-      setError("Error conectando wallet")
-    }
-  }
-
-  // Cargar estadísticas de la presale
-  const loadPresaleStats = async () => {
-    try {
-      console.log("Cargando estadísticas de presale...")
-      console.log("Dirección del contrato:", PRESALE_CONTRACT_ADDRESS)
-
-      if (typeof window.ethereum !== "undefined") {
-        const provider = new ethers.BrowserProvider(window.ethereum)
-        const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, provider)
-
-        console.log("Contrato inicializado:", contract.target)
-
-        const [totalRaised, hardCap, softCap, rate, startTime, endTime, isActive, isFinalized] = await Promise.all([
-          contract.totalRaised(),
-          contract.hardCap(),
-          contract.softCap(),
-          contract.rate(),
-          contract.startTime(),
-          contract.endTime(),
-          contract.isActive(),
-          contract.isFinalized(),
-        ])
-
-        const stats: PresaleStats = {
-          totalRaised: ethers.formatEther(totalRaised),
-          hardCap: ethers.formatEther(hardCap),
-          softCap: ethers.formatEther(softCap),
-          rate: rate.toString(),
-          startTime: Number(startTime),
-          endTime: Number(endTime),
-          isActive,
-          isFinalized,
-        }
-
-        console.log("Estadísticas cargadas:", stats)
-        setPresaleStats(stats)
-      }
-    } catch (error) {
-      console.error("Error cargando estadísticas:", error)
-      setError("Error cargando estadísticas de la presale")
-    }
-  }
-
-  // Cargar información del usuario
-  const loadUserInfo = async (userAddress: string) => {
-    try {
-      console.log("Cargando información del usuario:", userAddress)
-
-      if (typeof window.ethereum !== "undefined") {
-        const provider = new ethers.BrowserProvider(window.ethereum)
-        const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, provider)
-
-        const [contribution, claimed] = await Promise.all([
-          contract.contributions(userAddress),
-          contract.claimed(userAddress),
-        ])
-
-        const info: UserInfo = {
-          contribution: ethers.formatEther(contribution),
-          claimed,
-        }
-
-        console.log("Información del usuario cargada:", info)
-        setUserInfo(info)
-      }
-    } catch (error) {
-      console.error("Error cargando información del usuario:", error)
-    }
-  }
-
-  // Comprar tokens
-  const handlePurchase = async () => {
-    if (!purchaseAmount || !isConnected) return
-
-    setIsLoading(true)
-    setError("")
-
-    try {
-      console.log("Iniciando compra de tokens...")
-      console.log("Cantidad:", purchaseAmount, "CHZ")
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-      const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
-
-      const value = ethers.parseEther(purchaseAmount)
-      console.log("Valor en wei:", value.toString())
-
-      const tx = await contract.buyTokens({
-        value,
-        gasLimit: 300000,
-      })
-
-      console.log("Transacción enviada:", tx.hash)
-      await tx.wait()
-      console.log("Transacción confirmada")
-
-      // Recargar datos
-      await loadPresaleStats()
-      await loadUserInfo(account)
-      setPurchaseAmount("")
-    } catch (error) {
-      console.error("Error en la compra:", error)
-      setError("Error al comprar tokens")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Reclamar tokens
-  const handleClaim = async () => {
-    if (!isConnected) return
-
-    setIsLoading(true)
-    setError("")
-
-    try {
-      console.log("Reclamando tokens...")
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-      const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PRESALE_ABI, signer)
-
-      const tx = await contract.claimTokens({
-        gasLimit: 200000,
-      })
-
-      console.log("Transacción de reclamo enviada:", tx.hash)
-      await tx.wait()
-      console.log("Tokens reclamados exitosamente")
-
-      // Recargar información del usuario
-      await loadUserInfo(account)
-    } catch (error) {
-      console.error("Error reclamando tokens:", error)
-      setError("Error al reclamar tokens")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Calcular progreso
-  const getProgress = () => {
-    if (!presaleStats) return 0
-    const raised = Number.parseFloat(presaleStats.totalRaised)
-    const cap = Number.parseFloat(presaleStats.hardCap)
-    return cap > 0 ? (raised / cap) * 100 : 0
-  }
-
-  // Formatear tiempo
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString()
-  }
-
-  // Verificar si la presale está activa
-  const isPresaleActive = () => {
-    if (!presaleStats) return false
-    const now = Math.floor(Date.now() / 1000)
-    return presaleStats.isActive && now >= presaleStats.startTime && now <= presaleStats.endTime
-  }
-
-  // Inicializar datos
   useEffect(() => {
-    const initializeData = async () => {
-      console.log("Inicializando datos de launchpad...")
-      setIsInitializing(true)
+    const initContract = async () => {
+      if (provider) {
+        try {
+          const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PresaleABI, provider)
+          setPresaleContract(contract)
 
-      try {
-        await loadPresaleStats()
-
-        // Verificar si ya hay una wallet conectada
-        if (typeof window.ethereum !== "undefined") {
-          const accounts = await window.ethereum.request({
-            method: "eth_accounts",
+          // Get presale stats
+          const stats = await contract.getPresaleStats()
+          setPresaleStats({
+            endTime: Number(stats.endTime),
+            totalTokens: Number(ethers.formatUnits(stats.totalTokens, 18)),
+            soldTokens: Number(ethers.formatUnits(stats.soldTokens, 18)),
+            remainingTokens: Number(ethers.formatUnits(stats.remainingTokens, 18)),
+            tokenPrice: Number(ethers.formatUnits(stats.tokenPrice, 6)),
           })
 
-          if (accounts.length > 0) {
-            setAccount(accounts[0])
-            setIsConnected(true)
-            await loadUserInfo(accounts[0])
-          }
+          // Check if presale has ended
+          const ended = await contract.isPresaleEnded()
+          setIsPresaleEnded(ended)
+
+          setIsLoading(false)
+        } catch (error) {
+          console.error("Error initializing presale contract:", error)
+          toast({
+            title: "Error",
+            description: "Failed to load presale information. Please try again later.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
         }
-      } catch (error) {
-        console.error("Error inicializando:", error)
-      } finally {
-        setIsInitializing(false)
       }
     }
 
-    initializeData()
-  }, [])
+    initContract()
+  }, [provider, toast])
 
-  if (isInitializing) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando launchpad...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (presaleContract && account) {
+        try {
+          const info = await presaleContract.getUserInfo(account)
+          setUserInfo({
+            tokenBalance: Number(ethers.formatUnits(info[0], 18)),
+            usdcFromChzSwap: Number(ethers.formatUnits(info[1], 6)),
+            chzPaid: Number(ethers.formatUnits(info[2], 18)),
+            stableCoinDirectContribution: Number(ethers.formatUnits(info[3], 6)),
+          })
+        } catch (error) {
+          console.error("Error fetching user info:", error)
+        }
+      }
+    }
+
+    fetchUserInfo()
+  }, [presaleContract, account])
+
+  // Calculate progress percentage
+  const progressPercentage =
+    presaleStats.totalTokens > 0 ? (presaleStats.soldTokens / presaleStats.totalTokens) * 100 : 0
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Rocket className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-bold">FTK Token Launchpad</h1>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex flex-col items-center mb-12">
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-primary/5 shadow-2xl blur-xl"></div>
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-3HGJCRbhw7y7WB9MvgqiCHlI72OUmA.png"
+              alt="FintSport Token"
+              width={340}
+              height={340}
+              className="relative z-10"
+            />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold">FintSport Token (FTK)</h1>
+            <p className="text-muted-foreground">Presale ends on July 30, 2025</p>
+          </div>
         </div>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Participa en la preventa de FTK Token y sé parte del futuro de DiviSwap
-        </p>
+
+        <div className="w-full max-w-3xl">
+          <div className="flex justify-between mb-2 text-sm">
+            <span>Progress: {formatCurrency(progressPercentage, 2)}%</span>
+            <span>
+              {formatCurrency(presaleStats.soldTokens)} / {formatCurrency(presaleStats.totalTokens)} FTK
+            </span>
+          </div>
+          <Progress value={progressPercentage} className="h-3" />
+        </div>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-6">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Información de la Presale */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Información de la Presale
-            </CardTitle>
-            <CardDescription>Detalles y estadísticas de la preventa de FTK Token</CardDescription>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Price</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {presaleStats ? (
-              <>
-                {/* Progreso */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Progreso</span>
-                    <span className="text-sm text-muted-foreground">{getProgress().toFixed(1)}%</span>
-                  </div>
-                  <Progress value={getProgress()} className="h-3" />
-                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                    <span>{presaleStats.totalRaised} CHZ</span>
-                    <span>{presaleStats.hardCap} CHZ</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Estadísticas */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <DollarSign className="h-5 w-5 mx-auto mb-1 text-primary" />
-                    <div className="text-2xl font-bold">{presaleStats.totalRaised}</div>
-                    <div className="text-sm text-muted-foreground">CHZ Recaudados</div>
-                  </div>
-
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <TrendingUp className="h-5 w-5 mx-auto mb-1 text-primary" />
-                    <div className="text-2xl font-bold">{presaleStats.rate}</div>
-                    <div className="text-sm text-muted-foreground">FTK por CHZ</div>
-                  </div>
-                </div>
-
-                {/* Tiempos */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Inicio:</strong> {formatTime(presaleStats.startTime)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Fin:</strong> {formatTime(presaleStats.endTime)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Estado */}
-                <div className="flex gap-2">
-                  <Badge variant={isPresaleActive() ? "default" : "secondary"}>
-                    {isPresaleActive() ? "Activa" : "Inactiva"}
-                  </Badge>
-                  {presaleStats.isFinalized && <Badge variant="outline">Finalizada</Badge>}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Cargando información...</p>
-              </div>
-            )}
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">${presaleStats.tokenPrice}</div>
+            <p className="text-sm text-muted-foreground">per FTK token</p>
           </CardContent>
         </Card>
 
-        {/* Panel de Compra */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Participar en la Presale
-            </CardTitle>
-            <CardDescription>Conecta tu wallet y compra FTK tokens</CardDescription>
+        <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Time Remaining</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {!isConnected ? (
-              <div className="text-center py-8">
-                <Button onClick={connectWallet} size="lg" className="w-full">
-                  Conectar Wallet
+          <CardContent>
+            <PresaleTimer endTime={presaleStats.endTime} isEnded={isPresaleEnded} />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Your Contribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isConnected ? (
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-primary">{formatCurrency(userInfo.tokenBalance)} FTK</div>
+                <p className="text-sm text-muted-foreground">
+                  {userInfo.chzPaid > 0 && `${formatCurrency(userInfo.chzPaid)} CHZ + `}
+                  {userInfo.stableCoinDirectContribution > 0 &&
+                    `$${formatCurrency(userInfo.stableCoinDirectContribution)}`}
+                  {userInfo.chzPaid === 0 && userInfo.stableCoinDirectContribution === 0 && "No contribution yet"}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-sm text-muted-foreground mb-2">Connect your wallet to view your contribution</p>
+                <Button size="sm" onClick={() => {}}>
+                  Connect Wallet
                 </Button>
               </div>
-            ) : (
-              <>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Wallet Conectada</div>
-                  <div className="font-mono text-sm">
-                    {account.slice(0, 6)}...{account.slice(-4)}
-                  </div>
-                </div>
-
-                {userInfo && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Tu Contribución:</span>
-                      <span className="font-medium">{userInfo.contribution} CHZ</span>
-                    </div>
-
-                    {Number.parseFloat(userInfo.contribution) > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm">Tokens a Recibir:</span>
-                        <span className="font-medium">
-                          {presaleStats
-                            ? (Number.parseFloat(userInfo.contribution) * Number.parseFloat(presaleStats.rate)).toFixed(
-                                2,
-                              )
-                            : "0"}{" "}
-                          FTK
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <Separator />
-
-                {isPresaleActive() ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Cantidad a Invertir (CHZ)</label>
-                      <Input
-                        type="number"
-                        placeholder="0.0"
-                        value={purchaseAmount}
-                        onChange={(e) => setPurchaseAmount(e.target.value)}
-                        disabled={isLoading}
-                      />
-                    </div>
-
-                    <Button
-                      onClick={handlePurchase}
-                      disabled={!purchaseAmount || isLoading}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {isLoading ? "Procesando..." : "Comprar Tokens"}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground mb-4">La presale no está activa en este momento</p>
-
-                    {userInfo &&
-                      Number.parseFloat(userInfo.contribution) > 0 &&
-                      !userInfo.claimed &&
-                      presaleStats?.isFinalized && (
-                        <Button onClick={handleClaim} disabled={isLoading} className="w-full" size="lg">
-                          {isLoading ? "Procesando..." : "Reclamar Tokens"}
-                        </Button>
-                      )}
-                  </div>
-                )}
-              </>
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <Card className="bg-card/50 backdrop-blur-sm border-2 border-primary/10 mb-8">
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger
+                value="info"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Information
+              </TabsTrigger>
+              <TabsTrigger
+                value="purchase"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Purchase Tokens
+              </TabsTrigger>
+              <TabsTrigger
+                value="stats"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Statistics
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="info">
+              <PresaleInfo />
+            </TabsContent>
+
+            <TabsContent value="purchase">
+              <PresalePurchase
+                presaleContract={presaleContract}
+                signer={signer}
+                isConnected={isConnected}
+                isPresaleEnded={isPresaleEnded}
+                tokenPrice={presaleStats.tokenPrice}
+                onPurchaseComplete={async () => {
+                  // Actualizar estadísticas de la preventa
+                  if (presaleContract) {
+                    try {
+                      // Obtener estadísticas actualizadas
+                      const stats = await presaleContract.getPresaleStats()
+                      setPresaleStats({
+                        endTime: Number(stats.endTime),
+                        totalTokens: Number(ethers.formatUnits(stats.totalTokens, 18)),
+                        soldTokens: Number(ethers.formatUnits(stats.soldTokens, 18)),
+                        remainingTokens: Number(ethers.formatUnits(stats.remainingTokens, 18)),
+                        tokenPrice: Number(ethers.formatUnits(stats.tokenPrice, 6)),
+                      })
+
+                      // Actualizar información del usuario si está conectado
+                      if (account) {
+                        const info = await presaleContract.getUserInfo(account)
+                        setUserInfo({
+                          tokenBalance: Number(ethers.formatUnits(info[0], 18)),
+                          usdcFromChzSwap: Number(ethers.formatUnits(info[1], 6)),
+                          chzPaid: Number(ethers.formatUnits(info[2], 18)),
+                          stableCoinDirectContribution: Number(ethers.formatUnits(info[3], 6)),
+                        })
+                      }
+
+                      toast({
+                        title: "Statistics Updated",
+                        description: "Presale statistics have been updated with your contribution.",
+                      })
+                    } catch (error) {
+                      console.error("Error updating presale statistics:", error)
+                      toast({
+                        title: "Warning",
+                        description: "Could not update statistics. Please refresh the page.",
+                        variant: "warning",
+                      })
+                    }
+                  }
+                }}
+              />
+            </TabsContent>
+
+            <TabsContent value="stats">
+              <PresaleStats presaleStats={presaleStats} userInfo={userInfo} isConnected={isConnected} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Disclaimer */}
+      <div className="bg-secondary/30 p-4 rounded-lg border border-primary/20 mb-8">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium mb-1 text-primary">Disclaimer</p>
+            <p className="text-muted-foreground">
+              Participating in token presales involves risk. Only invest what you can afford to lose. DiviSwap does not
+              guarantee the success of this project or the value of FTK tokens. Please do your own research before
+              participating.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
+
+export default LaunchpadPage

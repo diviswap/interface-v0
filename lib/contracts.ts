@@ -321,7 +321,7 @@ export async function addLiquidity(
       to,
       deadline,
       {
-        gasLimit: 1000000, // Aumentar el límite de gas para asegurar que la transacción se complete
+        gasLimit: 2000000, // Increased gas limit
         gasPrice: gasPrice,
         type: 0, // Explícitamente establecer a tipo de transacción legacy
       },
@@ -370,7 +370,7 @@ export async function addLiquidityETH(
 
     const tx = await router.addLiquidityETH(token, amountTokenDesired, amountTokenMin, amountETHMin, to, deadline, {
       value: ethValue,
-      gasLimit: 1000000, // Aumentar el límite de gas para asegurar que la transacción se complete
+      gasLimit: 2000000, // Increased gas limit
       gasPrice: gasPrice,
       type: 0, // Explícitamente establecer a tipo de transacción legacy
     })

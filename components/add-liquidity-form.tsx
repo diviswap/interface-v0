@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useWeb3 } from "@/components/web3-provider"
 import { TokenSelector } from "@/components/token-selector"
 import { COMMON_TOKENS, ROUTER_ADDRESS, ERC20_ABI, WCHZ_ADDRESS, TOKEN_LIST, FACTORY_ADDRESS } from "@/lib/constants"
-import { checkAllowance, approveToken, addLiquidity, addLiquidityETH } from "@/lib/contracts"
+import { checkAllowance, approveToken, addLiquidity, addLiquidityETH, getFactoryContract } from "@/lib/contracts"
 import { formatCurrency } from "@/lib/utils"
 import { getPairAddress } from "@/lib/swap-utils"
 import { AddLiquidityConfirmationDialog } from "@/components/add-liquidity-confirmation-dialog"
@@ -380,6 +380,37 @@ export function AddLiquidityForm({
     setIsAdding(true)
 
     try {
+      // Check if pair exists, and if not, create it.
+      if (!pairExists) {
+        console.log("Pair does not exist. Creating pair...")
+        const factory = getFactoryContract(signer)
+        const token0AddressForPair = token0.address === ethers.ZeroAddress ? WCHZ_ADDRESS : token0.address
+        const token1AddressForPair = token1.address === ethers.ZeroAddress ? WCHZ_ADDRESS : token1.address
+
+        try {
+          const createPairTx = await factory.createPair(token0AddressForPair, token1AddressForPair)
+          toast({
+            title: "Creating Pair",
+            description: "Transaction sent to create the new liquidity pair.",
+          })
+          await createPairTx.wait()
+          console.log("Pair created successfully:", createPairTx.hash)
+          toast({
+            title: "Pair Created",
+            description: "The liquidity pair has been created. Now adding liquidity.",
+          })
+        } catch (pairError) {
+          console.error("Error creating pair:", pairError)
+          toast({
+            title: "Error Creating Pair",
+            description: "Could not create the liquidity pair. The transaction may have been reverted.",
+            variant: "destructive",
+          })
+          setIsAdding(false)
+          return
+        }
+      }
+
       const deadlineTime = Math.floor(Date.now() / 1000) + 20 * 60 // 20 minutes
 
       const amount0Wei = ethers.parseUnits(amount0, token0.decimals)

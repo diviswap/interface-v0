@@ -57,15 +57,15 @@ export function EnhancedNavbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <div className="flex items-center gap-6 mr-4">
+      <div className="container flex h-14 md:h-16 items-center px-3 md:px-4">
+        <div className="flex items-center gap-3 md:gap-6 mr-2 md:mr-4">
           <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105 duration-200">
             <Image
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_DIVISWAP_O-SBYxC1CzGyvFtnmNSsSK6EBVQAbhtH.png"
               alt="DiviSwap Logo"
               width={150}
               height={40}
-              className="h-8 w-auto"
+              className="h-6 md:h-8 w-auto"
               priority
             />
           </Link>
@@ -123,20 +123,22 @@ export function EnhancedNavbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          <LanguageSelector />
+        <div className="flex items-center gap-1 md:gap-2 ml-auto">
+          <div className="hidden sm:block">
+            <LanguageSelector />
+          </div>
           <ConnectWallet />
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
 
       {isMenuOpen && (
         <div className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg">
-          <div className="container py-4">
-            <nav className="flex flex-col gap-2">
+          <div className="container py-3 px-3">
+            <nav className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -146,10 +148,10 @@ export function EnhancedNavbar() {
                     target={item.external ? "_blank" : undefined}
                     rel={item.external ? "noopener noreferrer" : undefined}
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 p-3 rounded-md text-sm font-medium transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 p-4 rounded-lg text-base font-medium transition-colors hover:bg-muted active:bg-muted/80"
                   >
-                    <Icon className="h-5 w-5 text-primary" />
-                    {item.name}
+                    <Icon className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="flex-1">{item.name}</span>
                     {item.external && (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +163,7 @@ export function EnhancedNavbar() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="ml-auto h-4 w-4 text-muted-foreground"
+                        className="h-4 w-4 text-muted-foreground flex-shrink-0"
                       >
                         <path d="M7 7h10v10" />
                         <path d="M7 17 17 7" />
@@ -170,9 +172,12 @@ export function EnhancedNavbar() {
                   </Link>
                 )
               })}
-              <div className="border-t border-border/10 pt-2 mt-2">
-                <div className="p-3">
-                  <LanguageSelector />
+              <div className="border-t border-border/10 pt-3 mt-2">
+                <div className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">Language:</span>
+                    <LanguageSelector />
+                  </div>
                 </div>
               </div>
             </nav>

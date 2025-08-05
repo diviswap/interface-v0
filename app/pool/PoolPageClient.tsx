@@ -16,6 +16,7 @@ import PoolCard from "@/components/pool-card"
 import { AllPoolCard } from "@/components/all-pool-card"
 import { FACTORY_ABI, PAIR_ABI, ERC20_ABI, FACTORY_ADDRESS, WCHZ_ADDRESS, TOKEN_LIST } from "@/lib/constants"
 import { useTranslation } from "@/lib/i18n/context"
+import { ConnectWallet } from "@/components/connect-wallet-new"
 
 const getTokenLogoURI = (tokenAddress: string) => {
   const token = TOKEN_LIST.find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())
@@ -466,12 +467,8 @@ export default function PoolPageClient() {
               {!isConnected ? (
                 <div className="text-center py-8">
                   <p className="text-lg mb-4">{t.pool.connectWalletToView}</p>
-                  <Button
-                    onClick={() => {} /* Trigger wallet connect */}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    {t.common.connectWallet}
-                  </Button>
+                  {/* Replaced old button with new ConnectWallet component */}
+                  <ConnectWallet />
                 </div>
               ) : isLoading ? (
                 <div className="flex justify-center py-8">

@@ -4,7 +4,7 @@ import type * as React from "react"
 import { WagmiProvider, createConfig, http } from "wagmi"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { chilizMainnet } from "@/lib/chains"
-import { walletConnect, injected, coinbaseWallet } from "wagmi/connectors"
+import { walletConnect, injected } from "wagmi/connectors"
 
 const queryClient = new QueryClient()
 
@@ -30,11 +30,36 @@ const config = createConfig({
       },
       showQrModal: true,
     }),
-    coinbaseWallet({
-      appName: "DiviSwap",
-      appLogoUrl: "/logo.png",
+    walletConnect({
+      projectId: projectId || "",
+      metadata: {
+        name: "DiviSwap - Socios.com",
+        description: "Connect with Socios.com Wallet",
+        url: "https://diviswap.io",
+        icons: ["/logo.png"],
+      },
+      showQrModal: true,
+      qrModalOptions: {
+        themeMode: "dark",
+        themeVariables: {
+          "--wcm-z-index": "1000",
+        },
+      },
     }),
-    injected(),
+    injected({
+      target: () => ({
+        id: "okx",
+        name: "OKX Wallet",
+        provider: typeof window !== "undefined" ? (window as any).okxwallet : undefined,
+      }),
+    }),
+    injected({
+      target: () => ({
+        id: "binance",
+        name: "Binance Wallet",
+        provider: typeof window !== "undefined" ? (window as any).BinanceChain : undefined,
+      }),
+    }),
   ],
   transports: {
     [chilizMainnet.id]: http(),

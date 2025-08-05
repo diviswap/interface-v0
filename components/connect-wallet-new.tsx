@@ -2,12 +2,13 @@
 
 import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { ChevronDown, Wallet, ExternalLink, Copy, Check } from "lucide-react"
+import { ChevronDown, Wallet, ExternalLink, Copy, Check, CheckCircle } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { createAvatar } from "@dicebear/core"
 import { identicon } from "@dicebear/collection"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n/context"
 
@@ -19,8 +20,35 @@ export function ConnectWallet() {
     address,
   })
   const [copied, setCopied] = useState(false)
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
+  const [detectedWallets, setDetectedWallets] = useState<Set<string>>(new Set())
   const { t } = useTranslation()
+
+  useEffect(() => {
+    const detected = new Set<string>()
+
+    if (typeof window !== "undefined") {
+      // Check for MetaMask
+      if (window.ethereum?.isMetaMask) {
+        detected.add("MetaMask")
+      }
+
+      // Check for OKX Wallet
+      if ((window as any).okxwallet) {
+        detected.add("OKX Wallet")
+      }
+
+      // Check for Binance Wallet
+      if ((window as any).BinanceChain) {
+        detected.add("Binance Wallet")
+      }
+
+      // WalletConnect and Socios are always available (they don't need to be "installed")
+      detected.add("WalletConnect")
+      detected.add("Socios.com")
+    }
+
+    setDetectedWallets(detected)
+  }, [])
 
   const avatarSvg = useMemo(() => {
     if (!address) return null
@@ -49,12 +77,108 @@ export function ConnectWallet() {
     }
   }
 
-  const getWalletDescription = (connectorName: string) => {
+  const getWalletInfo = (connectorName: string, connectorId: string) => {
     const name = connectorName.toLowerCase()
-    if (name.includes("metamask")) return t.common.walletDescriptions.metamask
-    if (name.includes("walletconnect")) return t.common.walletDescriptions.walletconnect
-    if (name.includes("coinbase")) return t.common.walletDescriptions.coinbase
-    return t.common.walletDescriptions.default
+    const id = connectorId.toLowerCase()
+
+    if (name.includes("metamask")) {
+      return {
+        name: "MetaMask",
+        description: t.common.walletDescriptions.metamask,
+        detected: detectedWallets.has("MetaMask"),
+        icon: "/images/wallets/metamask.png",
+      }
+    }
+
+    if (name.includes("okx") || id.includes("okx")) {
+      return {
+        name: "OKX Wallet",
+        description: t.common.walletDescriptions.okx,
+        detected: detectedWallets.has("OKX Wallet"),
+        icon: "/images/wallets/okx.png",
+      }
+    }
+
+    if (name.includes("binance") || id.includes("binance")) {
+      return {
+        name: "Binance Wallet",
+        description: t.common.walletDescriptions.binance,
+        detected: detectedWallets.has("Binance Wallet"),
+        icon: "/images/wallets/binance.png",
+      }
+    }
+
+    if (name.includes("walletconnect")) {
+      // Check if this is the Socios.com specific connector
+      if (connectorName.includes("Socios")) {
+        return {
+          name: "Socios.com",
+          description: t.common.walletDescriptions.socios,
+          detected: true, // Always available
+          icon: "/images/wallets/socios.png",
+        }
+      }
+      return {
+        name: "WalletConnect",
+        description: t.common.walletDescriptions.walletconnect,
+        detected: true, // Always available
+        icon: "/images/wallets/walletconnect.png",
+      }
+    }
+
+    return {
+      name: connectorName,
+      description: t.common.walletDescriptions.default,
+      detected: false,
+      icon: "",
+    }
+  }
+
+  // Creando función para obtener conectores únicos incluyendo Socios.com como opción separada
+  const getUniqueConnectors = () => {
+    const walletOrder = ["MetaMask", "WalletConnect", "OKX Wallet", "Socios.com", "Binance Wallet"]
+    const walletMap = new Map()
+
+    // Agregar conectores regulares
+    for (const connector of connectors) {
+      const walletInfo = getWalletInfo(connector.name, connector.id)
+      const key = walletInfo.name
+
+      if (walletOrder.includes(key) && !walletMap.has(key)) {
+        walletMap.set(key, { connector, walletInfo })
+      }
+    }
+
+    // Agregar Socios.com como opción separada usando el conector de WalletConnect
+    const walletConnectConnector = connectors.find((c) => c.name.toLowerCase().includes("walletconnect"))
+    if (walletConnectConnector && !walletMap.has("Socios.com")) {
+      walletMap.set("Socios.com", {
+        connector: walletConnectConnector,
+        walletInfo: {
+          name: "Socios.com",
+          description: t.common.walletDescriptions.socios,
+          detected: true, // Always available
+          icon: "/images/wallets/socios.png",
+        },
+      })
+    }
+
+    const orderedWallets = []
+    const detectedFirst = []
+    const notDetected = []
+
+    for (const walletName of walletOrder) {
+      const wallet = walletMap.get(walletName)
+      if (wallet) {
+        if (wallet.walletInfo.detected) {
+          detectedFirst.push(wallet)
+        } else {
+          notDetected.push(wallet)
+        }
+      }
+    }
+
+    return [...detectedFirst, ...notDetected]
   }
 
   if (isConnected) {
@@ -63,42 +187,42 @@ export function ConnectWallet() {
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-gray-900 to-black border-orange-500/30 px-3 py-2 h-auto hover:from-gray-800 hover:to-gray-900 text-white transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm border"
+            className="flex items-center gap-2 rounded-xl bg-card/50 backdrop-blur-sm border-border hover:bg-card/80 px-3 py-2 h-auto transition-all duration-300"
           >
             {avatarSvg && (
-              <Avatar className="h-7 w-7 ring-2 ring-orange-500/20">
+              <Avatar className="h-7 w-7 ring-2 ring-primary/20">
                 <img src={avatarSvg || "/placeholder.svg"} alt="Wallet Avatar" />
-                <AvatarFallback className="bg-orange-500 text-black text-xs font-bold">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                   {address?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
             <div className="flex flex-col items-start min-w-0">
-              <span className="text-xs font-mono text-gray-400 leading-tight truncate">
+              <span className="text-xs font-mono text-muted-foreground leading-tight truncate">
                 {`${address?.slice(0, 6)}...${address?.slice(-4)}`}
               </span>
             </div>
-            <ChevronDown className="w-4 h-4 text-gray-400 transition-transform duration-200" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-md mx-auto bg-gradient-to-b from-gray-900 to-black border-orange-500/30 text-white shadow-2xl backdrop-blur-md">
-          <div className="px-3 py-2 border-b border-gray-700/50 mb-4">
+        <DialogContent className="w-[95vw] max-w-md mx-auto bg-popover border-border shadow-2xl backdrop-blur-md">
+          <div className="px-3 py-2 border-b border-border mb-4">
             <div className="flex items-center gap-3">
               {avatarSvg && (
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-orange-500/30">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-primary/30">
                   <img src={avatarSvg || "/placeholder.svg"} alt="Wallet Avatar" />
-                  <AvatarFallback className="bg-orange-500 text-black font-bold">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                     {address?.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-base sm:text-lg font-semibold text-orange-400">
+                <div className="text-base sm:text-lg font-semibold text-primary">
                   {isLoading
                     ? t.common.loading
                     : `${balance ? Number.parseFloat(balance.formatted).toFixed(6) : "0.000000"} ${balance?.symbol || "CHZ"}`}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-400 font-mono truncate">{address}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{address}</div>
               </div>
             </div>
           </div>
@@ -107,27 +231,27 @@ export function ConnectWallet() {
             <Button
               onClick={copyAddress}
               variant="ghost"
-              className="w-full justify-start hover:bg-gray-700/50 text-white rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start hover:bg-accent text-foreground rounded-lg transition-colors duration-200 h-12"
             >
-              {copied ? <Check className="h-4 w-4 text-orange-400 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              {copied ? <Check className="h-4 w-4 text-primary mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
               {copied ? t.common.copied : t.common.copyAddress}
             </Button>
 
             <Button
               onClick={() => window.open(`https://scan.chiliz.com/address/${address}`, "_blank")}
               variant="ghost"
-              className="w-full justify-start hover:bg-gray-700/50 text-white rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start hover:bg-accent text-foreground rounded-lg transition-colors duration-200 h-12"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               {t.common.viewOnExplorer}
             </Button>
 
-            <div className="h-px bg-gray-700/50 my-4" />
+            <div className="h-px bg-border my-4" />
 
             <Button
               onClick={() => disconnect()}
               variant="ghost"
-              className="w-full justify-start hover:bg-red-500/10 text-red-400 hover:text-red-300 rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start hover:bg-destructive/10 text-destructive hover:text-destructive rounded-lg transition-colors duration-200 h-12"
             >
               <Wallet className="h-4 w-4 mr-2" />
               {t.common.disconnect}
@@ -138,64 +262,66 @@ export function ConnectWallet() {
     )
   }
 
+  // Reemplazando Dialog con DropdownMenu para un diseño más profesional
   return (
-    <Dialog open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen}>
-      <DialogTrigger asChild>
-        <Button className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-black font-bold px-4 sm:px-6 py-2.5 h-auto transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-0 text-sm sm:text-base">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 sm:px-6 py-2.5 h-auto transition-all duration-300 shadow-lg hover:shadow-xl border-0 text-sm sm:text-base">
           <Wallet className="w-4 h-4 mr-2" />
           <span className="hidden xs:inline">{t.common.connectWallet}</span>
           <span className="xs:hidden">{t.common.connect}</span>
+          <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-lg mx-auto bg-gradient-to-b from-gray-900 via-gray-900 to-black border-orange-500/30 text-white shadow-2xl backdrop-blur-md rounded-2xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="relative bg-gradient-to-r from-orange-500/20 to-orange-600/20 p-4 sm:p-6 border-b border-orange-500/20">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent" />
-          <div className="relative">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 flex items-center gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center">
-                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
-              </div>
-              {t.common.connectWallet}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-300">{t.common.chooseWallet}</p>
-          </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-80 p-2 bg-popover border-border shadow-2xl backdrop-blur-md"
+        align="end"
+        sideOffset={8}
+      >
+        <div className="px-3 py-2 border-b border-border mb-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-primary" />
+            {t.common.connectWallet}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">{t.common.chooseWallet}</p>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-3">
-          {connectors.map((connector, index) => (
-            <Button
-              key={connector.uid}
-              onClick={() => {
-                connect({ connector })
-                setIsWalletModalOpen(false)
-              }}
-              variant="ghost"
-              className="w-full p-3 sm:p-4 h-auto justify-start hover:bg-gradient-to-r hover:from-orange-500/10 hover:to-orange-600/10 border border-gray-700/50 hover:border-orange-500/30 rounded-xl transition-all duration-300 group"
-            >
-              <div className="flex items-center gap-3 sm:gap-4 w-full">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-r from-gray-700 to-gray-600 flex items-center justify-center group-hover:from-orange-500/20 group-hover:to-orange-600/20 transition-all duration-300 flex-shrink-0">
-                  <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400" />
+        {getUniqueConnectors().map(({ connector, walletInfo }) => (
+          <DropdownMenuItem
+            key={`${connector.uid}-${walletInfo.name}`}
+            onClick={() => connect({ connector })}
+            className="p-3 cursor-pointer hover:bg-accent rounded-lg transition-all duration-200 focus:bg-accent"
+          >
+            <div className="flex items-center gap-3 w-full">
+              <img
+                src={walletInfo.icon || "/placeholder.svg"}
+                alt={walletInfo.name}
+                className="w-8 h-8 object-contain flex-shrink-0"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.src = "/placeholder.svg"
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground text-sm truncate">{walletInfo.name}</span>
+                  {walletInfo.detected && (
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3 text-green-500" />
+                      <span className="text-xs text-green-500 font-medium">Detected</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 text-left min-w-0">
-                  <div className="font-semibold text-white group-hover:text-orange-400 transition-colors duration-300 text-base sm:text-lg truncate">
-                    {connector.name}
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-400 group-hover:text-gray-300 transition-colors duration-300 line-clamp-2">
-                    {getWalletDescription(connector.name)}
-                  </div>
-                </div>
-                <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 rotate-[-90deg] group-hover:text-orange-400 transition-all duration-300 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground truncate">{walletInfo.description}</p>
               </div>
-            </Button>
-          ))}
-        </div>
+            </div>
+          </DropdownMenuItem>
+        ))}
 
-        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-          <div className="bg-gray-800/50 rounded-xl p-3 sm:p-4 border border-gray-700/30">
-            <p className="text-xs text-gray-400 text-center leading-relaxed">{t.common.termsAgreement}</p>
-          </div>
+        <div className="px-3 py-2 mt-2 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed">{t.common.termsAgreement}</p>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

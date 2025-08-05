@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/components/ui/use-toast"
-import { useWeb3 } from "@/components/web3-provider"
+// Usando solo hooks de Wagmi para soporte completo de múltiples wallets
+import { useAccount, useWalletClient, usePublicClient } from "wagmi"
 import { formatCurrency } from "@/lib/utils"
 import { PresaleInfo } from "@/components/presale-info"
 import { PresalePurchase } from "@/components/presale-purchase"
@@ -16,6 +16,9 @@ import { PresaleTimer } from "@/components/presale-timer"
 import { PresaleABI } from "@/lib/presale-abi"
 import Image from "next/image"
 import { AlertTriangle } from "lucide-react"
+import { useTranslation } from "@/lib/i18n/context"
+// Importando ConnectWallet para soporte de múltiples wallets
+import { ConnectWallet } from "@/components/connect-wallet-new"
 
 // Presale contract address on Chiliz Chain
 const PRESALE_CONTRACT_ADDRESS = "0x0c19d6F5d993031ABa0916894009E34e6964AA88" // FintSport Token Presale Contract
@@ -26,9 +29,15 @@ const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F"
 const TREASURY_ADDRESS = "0x721c7d63159Fcd18F283F0Dd8aDC30C02E4e087a"
 
 function LaunchpadPage() {
-  const { provider, signer, account, isConnected } = useWeb3()
+  // Usando solo hooks de Wagmi para compatibilidad completa con múltiples wallets
+  const { address: account, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
   const { toast } = useToast()
+  const { t } = useTranslation()
+
   const [presaleContract, setPresaleContract] = useState<ethers.Contract | null>(null)
+  // Removiendo provider y signer del estado ya que Wagmi los maneja internamente
   const [presaleStats, setPresaleStats] = useState({
     endTime: 0,
     totalTokens: 0,
@@ -48,9 +57,12 @@ function LaunchpadPage() {
 
   useEffect(() => {
     const initContract = async () => {
-      if (provider) {
+      // Usando publicClient de Wagmi para operaciones de solo lectura
+      if (publicClient) {
         try {
-          const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PresaleABI, provider)
+          // Para operaciones de solo lectura, usamos el publicClient de Wagmi
+          const ethersProvider = new ethers.JsonRpcProvider(publicClient.transport.url)
+          const contract = new ethers.Contract(PRESALE_CONTRACT_ADDRESS, PresaleABI, ethersProvider)
           setPresaleContract(contract)
 
           // Get presale stats
@@ -81,7 +93,7 @@ function LaunchpadPage() {
     }
 
     initContract()
-  }, [provider, toast])
+  }, [publicClient, toast])
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -122,14 +134,16 @@ function LaunchpadPage() {
             />
           </div>
           <div>
-            <h1 className="text-4xl font-bold">FintSport Token (FTK)</h1>
-            <p className="text-muted-foreground">Presale ends on July 30, 2025</p>
+            <h1 className="text-4xl font-bold">{t.launchpad.title}</h1>
+            <p className="text-muted-foreground">{t.launchpad.subtitle}</p>
           </div>
         </div>
 
         <div className="w-full max-w-3xl">
           <div className="flex justify-between mb-2 text-sm">
-            <span>Progress: {formatCurrency(progressPercentage, 2)}%</span>
+            <span>
+              {t.launchpad.progress}: {formatCurrency(progressPercentage, 2)}%
+            </span>
             <span>
               {formatCurrency(presaleStats.soldTokens)} / {formatCurrency(presaleStats.totalTokens)} FTK
             </span>
@@ -141,17 +155,17 @@ function LaunchpadPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Price</CardTitle>
+            <CardTitle className="text-lg">{t.launchpad.price}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary">${presaleStats.tokenPrice}</div>
-            <p className="text-sm text-muted-foreground">per FTK token</p>
+            <p className="text-sm text-muted-foreground">{t.launchpad.perToken}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Time Remaining</CardTitle>
+            <CardTitle className="text-lg">{t.launchpad.timeRemaining}</CardTitle>
           </CardHeader>
           <CardContent>
             <PresaleTimer endTime={presaleStats.endTime} isEnded={isPresaleEnded} />
@@ -160,7 +174,7 @@ function LaunchpadPage() {
 
         <Card className="bg-card/50 backdrop-blur-sm border border-primary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Your Contribution</CardTitle>
+            <CardTitle className="text-lg">{t.launchpad.yourContribution}</CardTitle>
           </CardHeader>
           <CardContent>
             {isConnected ? (
@@ -170,15 +184,14 @@ function LaunchpadPage() {
                   {userInfo.chzPaid > 0 && `${formatCurrency(userInfo.chzPaid)} CHZ + `}
                   {userInfo.stableCoinDirectContribution > 0 &&
                     `$${formatCurrency(userInfo.stableCoinDirectContribution)}`}
-                  {userInfo.chzPaid === 0 && userInfo.stableCoinDirectContribution === 0 && "No contribution yet"}
+                  {userInfo.chzPaid === 0 && userInfo.stableCoinDirectContribution === 0 && t.launchpad.noContribution}
                 </p>
               </div>
             ) : (
               <div className="text-center py-2">
-                <p className="text-sm text-muted-foreground mb-2">Connect your wallet to view your contribution</p>
-                <Button size="sm" onClick={() => {}}>
-                  Connect Wallet
-                </Button>
+                <p className="text-sm text-muted-foreground mb-2">{t.launchpad.connectWalletToView}</p>
+                {/* Usando ConnectWallet que soporta múltiples wallets */}
+                <ConnectWallet />
               </div>
             )}
           </CardContent>
@@ -193,19 +206,19 @@ function LaunchpadPage() {
                 value="info"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Information
+                {t.launchpad.information}
               </TabsTrigger>
               <TabsTrigger
                 value="purchase"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Purchase Tokens
+                {t.launchpad.purchaseTokens}
               </TabsTrigger>
               <TabsTrigger
                 value="stats"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Statistics
+                {t.launchpad.statistics}
               </TabsTrigger>
             </TabsList>
 
@@ -216,7 +229,8 @@ function LaunchpadPage() {
             <TabsContent value="purchase">
               <PresalePurchase
                 presaleContract={presaleContract}
-                signer={signer}
+                // Pasando walletClient en lugar de signer para compatibilidad con múltiples wallets
+                walletClient={walletClient}
                 isConnected={isConnected}
                 isPresaleEnded={isPresaleEnded}
                 tokenPrice={presaleStats.tokenPrice}
@@ -274,12 +288,8 @@ function LaunchpadPage() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-medium mb-1 text-primary">Disclaimer</p>
-            <p className="text-muted-foreground">
-              Participating in token presales involves risk. Only invest what you can afford to lose. DiviSwap does not
-              guarantee the success of this project or the value of FTK tokens. Please do your own research before
-              participating.
-            </p>
+            <p className="font-medium mb-1 text-primary">{t.launchpad.disclaimerTitle}</p>
+            <p className="text-muted-foreground">{t.launchpad.disclaimerText}</p>
           </div>
         </div>
       </div>

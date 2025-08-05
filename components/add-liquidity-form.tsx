@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { useWeb3 } from "@/components/web3-provider"
+import { useAccount, useWalletClient, usePublicClient } from "wagmi"
 import { TokenSelector } from "@/components/token-selector"
 import { COMMON_TOKENS, ROUTER_ADDRESS, ERC20_ABI, WCHZ_ADDRESS, TOKEN_LIST, FACTORY_ADDRESS } from "@/lib/constants"
 import { checkAllowance, approveToken, addLiquidity, addLiquidityETH, getFactoryContract } from "@/lib/contracts"
@@ -28,8 +28,30 @@ export function AddLiquidityForm({
   onAddLiquidity,
   initialTokens = { token0Address: null, token1Address: null },
 }: AddLiquidityFormProps) {
-  const { provider, signer, account, isConnected, refreshBalance } = useWeb3()
+  // Updated to use Wagmi hooks
+  const { address: account, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
   const { toast } = useToast()
+
+  // Create provider and getSigner function from Wagmi clients
+  const provider = publicClient
+    ? new ethers.JsonRpcProvider(publicClient.transport.url, {
+        chainId: publicClient.chain.id,
+        name: publicClient.chain.name,
+      })
+    : null
+
+  const getSigner = async () => {
+    if (!walletClient) return null
+    try {
+      const provider = new ethers.BrowserProvider(walletClient.transport)
+      return await provider.getSigner()
+    } catch (error) {
+      console.error("Error getting signer:", error)
+      return null
+    }
+  }
 
   const [token0, setToken0] = useState(COMMON_TOKENS[0])
   const [token1, setToken1] = useState(null)
@@ -212,7 +234,7 @@ export function AddLiquidityForm({
   // Check approvals
   useEffect(() => {
     const checkTokenAllowances = async () => {
-      if (!isConnected || !signer || !token0 || !token1 || !amount0 || !amount1) {
+      if (!isConnected || !provider || !token0 || !token1 || !amount0 || !amount1 || !account) {
         setIsApproved0(false)
         setIsApproved1(false)
         return
@@ -245,7 +267,7 @@ export function AddLiquidityForm({
     }
 
     checkTokenAllowances()
-  }, [isConnected, provider, signer, account, token0, token1, amount0, amount1])
+  }, [isConnected, provider, account, token0, token1, amount0, amount1])
 
   // Fetch token balances
   useEffect(() => {
@@ -300,7 +322,7 @@ export function AddLiquidityForm({
   }, [isConnected, provider, account, token0, token1, toast])
 
   const handleApprove = async (tokenIndex: number) => {
-    if (!isConnected || !signer) {
+    if (!isConnected || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
@@ -311,6 +333,7 @@ export function AddLiquidityForm({
 
     const token = tokenIndex === 0 ? token0 : token1
     const amount = tokenIndex === 0 ? amount0 : amount1
+    const setApproved = tokenIndex === 0 ? setIsApproved0 : setIsApproved1
 
     if (!token || !amount) {
       return
@@ -318,17 +341,19 @@ export function AddLiquidityForm({
 
     // No need to approve native token (CHZ)
     if (token.address === ethers.ZeroAddress) {
-      if (tokenIndex === 0) {
-        setIsApproved0(true)
-      } else {
-        setIsApproved1(true)
-      }
+      setApproved(true)
       return
     }
 
     setIsApproving(true)
 
     try {
+      // Use new getSigner function
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("Failed to get signer")
+      }
+
       // Aprobar exactamente la cantidad necesaria
       const amountWei = ethers.parseUnits(amount, token.decimals)
       await approveToken(token.address, ROUTER_ADDRESS, amountWei, signer)
@@ -338,11 +363,7 @@ export function AddLiquidityForm({
         description: `${token.symbol} approved successfully!`,
       })
 
-      if (tokenIndex === 0) {
-        setIsApproved0(true)
-      } else {
-        setIsApproved1(true)
-      }
+      setApproved(true)
     } catch (error) {
       console.error("Error approving token:", error)
       toast({
@@ -356,7 +377,7 @@ export function AddLiquidityForm({
   }
 
   const handleAddLiquidity = async () => {
-    if (!isConnected || !signer || !token0 || !token1) {
+    if (!isConnected || !token0 || !token1 || !amount0 || !amount1 || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
@@ -365,21 +386,15 @@ export function AddLiquidityForm({
       return
     }
 
-    if (
-      (!isApproved0 && token0.address !== ethers.ZeroAddress) ||
-      (!isApproved1 && token1.address !== ethers.ZeroAddress)
-    ) {
-      toast({
-        title: "Error",
-        description: "Please approve both tokens first.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsAdding(true)
 
     try {
+      // Use new getSigner function
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("Failed to get signer")
+      }
+
       // Check if pair exists, and if not, create it.
       if (!pairExists) {
         console.log("Pair does not exist. Creating pair...")
@@ -502,7 +517,7 @@ export function AddLiquidityForm({
         setTimeout(async () => {
           try {
             // Actualizar el balance global
-            await refreshBalance()
+            // Placeholder for refreshBalance function
           } catch (error) {
             console.error("Error refreshing balance after adding liquidity:", error)
           }

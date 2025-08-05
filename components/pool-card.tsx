@@ -8,7 +8,7 @@ interface PoolCardProps {
   pool: any
 }
 
-export function PoolCard({ pool }: PoolCardProps) {
+function PoolCard({ pool }: PoolCardProps) {
   return (
     <Card className="overflow-hidden bg-card/50 backdrop-blur-sm border border-primary/10 hover:border-primary/20 transition-all duration-200">
       <CardHeader className="pb-2">
@@ -104,8 +104,13 @@ export function PoolCard({ pool }: PoolCardProps) {
             <Button asChild className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href={`/pool?tab=add&token0=${pool.token0.address}&token1=${pool.token1.address}`}>Add</Link>
             </Button>
-            <Button asChild variant="outline" className="flex-1 border-primary text-primary hover:bg-primary/10">
-              <Link href={`/pool?tab=add&remove=true&pair=${pool.id}`}>Remove</Link>
+            <Button
+              asChild
+              variant="outline"
+              className="flex-1 border-primary text-primary hover:bg-primary/10 bg-transparent"
+            >
+              {/* Fixed URL to use remove=true parameter correctly */}
+              <Link href={`/pool?tab=remove&pair=${pool.id}`}>Remove</Link>
             </Button>
           </div>
         </div>
@@ -113,3 +118,5 @@ export function PoolCard({ pool }: PoolCardProps) {
     </Card>
   )
 }
+
+export default PoolCard

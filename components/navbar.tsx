@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket, FileText } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { cn } from "@/lib/utils"
@@ -18,13 +18,14 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [balance, setBalance] = useState<string>("0")
 
-  // Update the navItems array to include the Launchpad
+  // Update the navItems array to include the Launchpad and Docs
   const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Swap", path: "/swap", icon: ArrowLeftRight },
     { name: "Pool", path: "/pool", icon: Droplets },
     { name: "Charts", path: "/charts", icon: LineChart },
     { name: "Launchpad", path: "/launchpad", icon: Rocket },
+    { name: "Docs", path: "/docs", icon: FileText },
     { name: "Academy", href: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]
 

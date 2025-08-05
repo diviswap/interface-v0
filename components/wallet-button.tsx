@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
 import { Identicon } from "@/components/identicon"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/context"
 
 interface WalletButtonProps {
   className?: string
@@ -13,6 +14,7 @@ interface WalletButtonProps {
 export function WalletButton({ className }: WalletButtonProps) {
   const { account, isConnected, connect, disconnect } = useWeb3()
   const [mounted, setMounted] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     setMounted(true)
@@ -34,7 +36,7 @@ export function WalletButton({ className }: WalletButtonProps) {
 
   return (
     <Button onClick={connect} className={className}>
-      Connect Wallet
+      {t.common.connectWallet}
     </Button>
   )
 }

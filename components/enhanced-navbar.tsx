@@ -3,52 +3,49 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
-import { useWeb3 } from "@/components/web3-provider"
+import { useAccount, useBalance } from "wagmi"
 import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal, Rocket } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
-import { WalletButton } from "@/components/wallet-button"
+import { ConnectWallet } from "@/components/connect-wallet-new"
 import { NavBar } from "@/components/ui/tubelight-navbar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { LanguageSelector } from "@/components/language-selector"
+import { useTranslation } from "@/lib/i18n/context"
 
 export function EnhancedNavbar() {
-  const { account, isConnected, provider } = useWeb3()
+  const { address, isConnected } = useAccount()
+  const { data: balance } = useBalance({
+    address,
+  })
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [balance, setBalance] = useState<string>("0")
   const [windowWidth, setWindowWidth] = useState(0)
+  const { t } = useTranslation()
 
-  // Navigation items for the tubelight navbar
   const navItems = [
-    { name: "Home", url: "/", icon: Home },
-    { name: "Swap", url: "/swap", icon: ArrowLeftRight },
-    { name: "Pool", url: "/pool", icon: Droplets },
-    { name: "Launchpad", url: "/launchpad", icon: Rocket },
-    { name: "Charts", url: "/charts", icon: LineChart },
-    { name: "Academy", url: "https://academy.diviswap.io", icon: BookOpen, external: true },
+    { name: t.nav.home, url: "/", icon: Home },
+    { name: t.nav.swap, url: "/swap", icon: ArrowLeftRight },
+    { name: t.nav.pool, url: "/pool", icon: Droplets },
+    { name: t.nav.launchpad, url: "/launchpad", icon: Rocket },
+    { name: t.nav.charts, url: "/charts", icon: LineChart },
+    { name: t.nav.academy, url: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]
 
-  // Determine how many items to show based on screen width
   const getVisibleItemCount = (width: number) => {
-    if (width >= 1280) return 6 // xl screens - show all items
-    if (width >= 1024) return 5 // lg screens
+    if (width >= 1280) return 6 // xl screens - reduced from 7 to 6
+    if (width >= 1024) return 5 // lg screens - reduced from 6 to 5
     if (width >= 768) return 4 // md screens
     return 0 // mobile - handled separately
   }
 
-  // Initialize these values in useEffect to avoid SSR issues
   useEffect(() => {
-    // Set initial window width
     setWindowWidth(window.innerWidth)
 
-    // Handle window resize
     const handleResize = () => {
       setWindowWidth(window.innerWidth)
     }
 
     window.addEventListener("resize", handleResize)
 
-    // Clean up event listener
     return () => {
       window.removeEventListener("resize", handleResize)
     }
@@ -57,38 +54,6 @@ export function EnhancedNavbar() {
   const visibleItemCount = getVisibleItemCount(windowWidth)
   const visibleItems = navItems.slice(0, visibleItemCount)
   const overflowItems = navItems.slice(visibleItemCount)
-
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (isConnected && provider && account) {
-        try {
-          const balance = await provider.getBalance(account)
-          setBalance(ethers.formatEther(balance))
-        } catch (error) {
-          console.error("Error fetching balance:", error)
-          setBalance("0")
-        }
-      }
-    }
-
-    fetchBalance()
-
-    // Add listener for balanceUpdated event
-    const handleBalanceUpdate = () => {
-      fetchBalance()
-    }
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("balanceUpdated", handleBalanceUpdate)
-
-      // Clean up listeners when component unmounts
-      return () => {
-        window.removeEventListener("balanceUpdated", handleBalanceUpdate)
-      }
-    }
-
-    return undefined
-  }, [isConnected, provider, account])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -106,13 +71,10 @@ export function EnhancedNavbar() {
           </Link>
         </div>
 
-        {/* Desktop: Responsive tubelight navbar */}
         <div className="hidden md:flex flex-1 justify-center">
           <div className="flex items-center">
-            {/* Visible navigation items */}
             <NavBar items={visibleItems} className="static transform-none mb-0 mt-0 pt-0" />
 
-            {/* Overflow menu for additional items */}
             {overflowItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -161,23 +123,16 @@ export function EnhancedNavbar() {
           </div>
         </div>
 
-        {/* Wallet button and balance */}
-        <div className="flex items-center gap-4 ml-auto">
-          {isConnected && (
-            <span className="hidden md:inline text-sm text-muted-foreground">
-              {formatCurrency(Number(balance))} CHZ
-            </span>
-          )}
-          <WalletButton />
+        <div className="flex items-center gap-2 ml-auto">
+          <LanguageSelector />
+          <ConnectWallet />
 
-          {/* Mobile: Menu toggle button */}
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
         </div>
       </div>
 
-      {/* Mobile menu dropdown */}
       {isMenuOpen && (
         <div className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg">
           <div className="container py-4">
@@ -215,14 +170,12 @@ export function EnhancedNavbar() {
                   </Link>
                 )
               })}
-            </nav>
-
-            {/* Show balance in mobile menu */}
-            {isConnected && (
-              <div className="mt-4 pt-4 border-t border-border/10">
-                <div className="text-sm text-muted-foreground">Balance: {formatCurrency(Number(balance))} CHZ</div>
+              <div className="border-t border-border/10 pt-2 mt-2">
+                <div className="p-3">
+                  <LanguageSelector />
+                </div>
               </div>
-            )}
+            </nav>
           </div>
         </div>
       )}
@@ -230,5 +183,4 @@ export function EnhancedNavbar() {
   )
 }
 
-// Exportar el componente como default para dynamic import
-export default { EnhancedNavbar }
+export default EnhancedNavbar

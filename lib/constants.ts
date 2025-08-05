@@ -212,7 +212,7 @@ export const TOKEN_LIST = [
   },
   {
     chainId: 88888,
-    address: "0xD37938861Bd995FdC016B6383ac7D78b345107BA",
+    address: "0x5667DDD9764d1873D7a1bc15bc091a8B8a88EF1d",
     name: "Wrapped Levante",
     symbol: "WLEV",
     decimals: 18,
@@ -619,15 +619,69 @@ export function fetchTokenList() {
 
 // ABIs
 export const FACTORY_ABI = [
-  "function getPair(address tokenA, address tokenB) external view returns (address pair)",
-  "function createPair(address tokenA, address tokenB) external returns (address pair)",
-  "function setFeeTo(address) external",
-  "function setFeeToSetter(address) external",
-  "function feeTo() external view returns (address)",
-  "function feeToSetter() external view returns (address)",
-  "function allPairsLength() external view returns (uint)",
-  "function allPairs(uint) external view returns (address)",
-]
+  {
+    inputs: [
+      { internalType: "address", name: "tokenA", type: "address" },
+      { internalType: "address", name: "tokenB", type: "address" },
+    ],
+    name: "getPair",
+    outputs: [{ internalType: "address", name: "pair", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "tokenA", type: "address" },
+      { internalType: "address", name: "tokenB", type: "address" },
+    ],
+    name: "createPair",
+    outputs: [{ internalType: "address", name: "pair", type: "address" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "setFeeTo",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "setFeeToSetter",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "feeTo",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "feeToSetter",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "allPairsLength",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "allPairs",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const
 
 export const ROUTER_ABI = [
   // Factory functions

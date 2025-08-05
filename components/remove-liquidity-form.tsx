@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { useWeb3 } from "@/components/web3-provider"
+import { useAccount, useWalletClient, usePublicClient } from "wagmi"
 import { formatCurrency } from "@/lib/utils"
 import { checkAllowance, approveToken, removeLiquidity, removeLiquidityETH } from "@/lib/contracts"
-import { WETH_ADDRESS, ROUTER_ADDRESS } from "@/lib/constants"
+import { ROUTER_ADDRESS } from "@/lib/constants"
 import { RemoveLiquidityConfirmationDialog } from "@/components/remove-liquidity-confirmation-dialog"
 
 interface RemoveLiquidityFormProps {
@@ -20,8 +20,29 @@ interface RemoveLiquidityFormProps {
 }
 
 export function RemoveLiquidityForm({ pools, initialPairAddress = null }: RemoveLiquidityFormProps) {
-  const { provider, signer, account, isConnected, refreshBalance } = useWeb3()
+  const { address: account, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
   const { toast } = useToast()
+
+  const provider = publicClient
+    ? new ethers.JsonRpcProvider(publicClient.transport.url, {
+        chainId: publicClient.chain.id,
+        name: publicClient.chain.name,
+      })
+    : null
+
+  // Updated getSigner to use walletClient instead of window.ethereum
+  const getSigner = async () => {
+    if (!walletClient) return null
+    try {
+      const provider = new ethers.BrowserProvider(walletClient.transport)
+      return await provider.getSigner()
+    } catch (error) {
+      console.error("Error getting signer:", error)
+      return null
+    }
+  }
 
   const [selectedPool, setSelectedPool] = useState(pools[0])
   const [amount, setAmount] = useState("")
@@ -31,31 +52,23 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
   const [maxLiquidity, setMaxLiquidity] = useState("0")
   const [expectedToken0, setExpectedToken0] = useState("0")
   const [expectedToken1, setExpectedToken1] = useState("0")
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
-  const [txHash, setTxHash] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
+  const [txHash, setTxHash] = useState<string | null>(null)
   const [confirmationDetails, setConfirmationDetails] = useState({
-    token0: null,
-    token1: null,
-    amount0: "",
-    amount1: "",
-    lpAmount: "",
+    pool: null,
+    amount: "",
+    expectedToken0: "",
+    expectedToken1: "",
   })
 
-  // Update selected pool when pools change
-  useEffect(() => {
-    if (pools.length > 0 && (!selectedPool || !pools.find((p) => p.id === selectedPool.id))) {
-      setSelectedPool(pools[0])
-    }
-  }, [pools, selectedPool])
-
-  // Set initial pool based on initialPairAddress
+  // Set initial pool if provided
   useEffect(() => {
     if (initialPairAddress && pools.length > 0) {
-      const pool = pools.find((p) => p.id.toLowerCase() === initialPairAddress.toLowerCase())
-      if (pool) {
-        setSelectedPool(pool)
+      const foundPool = pools.find((pool) => pool.id.toLowerCase() === initialPairAddress.toLowerCase())
+      if (foundPool) {
+        setSelectedPool(foundPool)
       }
     }
   }, [initialPairAddress, pools])
@@ -63,7 +76,7 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
   // Check approval and get maximum balance
   useEffect(() => {
     const checkApprovalAndBalance = async () => {
-      if (!isConnected || !provider || !signer || !selectedPool || !account) {
+      if (!isConnected || !provider || !selectedPool || !account) {
         setIsApproved(false)
         setMaxLiquidity("0")
         return
@@ -90,14 +103,8 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
         const allowance = await checkAllowance(selectedPool.id, account, ROUTER_ADDRESS, provider)
         console.log("LP token allowance:", allowance.toString())
 
-        // If there's a specific amount, check against that amount
-        if (amount) {
-          const amountWei = ethers.parseUnits(amount, 18)
-          setIsApproved(allowance >= amountWei)
-        } else {
-          // If no amount, check against total balance
-          setIsApproved(allowance >= balance)
-        }
+        // Always check against total balance instead of specific amount
+        setIsApproved(allowance >= balance)
       } catch (error) {
         console.error("Error checking approval and balance:", error)
         setError("Error checking approval and balance. Please try again.")
@@ -109,53 +116,66 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     }
 
     checkApprovalAndBalance()
-  }, [isConnected, provider, signer, selectedPool, account, amount])
+    // Removed 'amount' from dependencies to prevent infinite re-renders
+  }, [isConnected, provider, selectedPool, account])
+
+  // Added separate useEffect to check approval when amount changes
+  useEffect(() => {
+    const checkAmountApproval = async () => {
+      if (!amount || !selectedPool || !account || !provider) {
+        return
+      }
+
+      try {
+        const allowance = await checkAllowance(selectedPool.id, account, ROUTER_ADDRESS, provider)
+        const amountWei = ethers.parseUnits(amount, 18)
+        setIsApproved(allowance >= amountWei)
+      } catch (error) {
+        console.error("Error checking amount approval:", error)
+        setIsApproved(false)
+      }
+    }
+
+    if (amount && Number(amount) > 0) {
+      checkAmountApproval()
+    }
+  }, [amount, selectedPool, account, provider])
 
   // Calculate expected tokens when removing liquidity
   useEffect(() => {
     const calculateExpectedTokens = async () => {
-      if (!selectedPool || !amount || !provider) {
+      if (!selectedPool || !amount || !provider || Number(amount) === 0) {
         setExpectedToken0("0")
         setExpectedToken1("0")
         return
       }
 
-      setIsLoading(true)
-      setError(null)
-
       try {
-        console.log("Calculating expected tokens for amount:", amount)
-        // Get reserves and total supply
         const pairContract = new ethers.Contract(
           selectedPool.id,
           [
-            "function getReserves() view returns (uint112, uint112, uint32)",
-            "function totalSupply() view returns (uint256)",
+            "function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
+            "function totalSupply() external view returns (uint256)",
           ],
           provider,
         )
 
         const [reserves, totalSupply] = await Promise.all([pairContract.getReserves(), pairContract.totalSupply()])
-        console.log("Pair reserves:", reserves[0].toString(), reserves[1].toString())
-        console.log("Total supply:", totalSupply.toString())
 
-        // Calculate the proportion of tokens to receive
-        const amountWei = ethers.parseUnits(amount, 18)
-        const token0Amount = (amountWei * reserves[0]) / totalSupply
-        const token1Amount = (amountWei * reserves[1]) / totalSupply
+        const liquidityAmount = ethers.parseUnits(amount, 18)
+        const reserve0 = reserves[0]
+        const reserve1 = reserves[1]
 
-        console.log("Expected token0 amount:", token0Amount.toString())
-        console.log("Expected token1 amount:", token1Amount.toString())
+        // Calculate expected tokens based on liquidity share
+        const expectedAmount0 = (liquidityAmount * reserve0) / totalSupply
+        const expectedAmount1 = (liquidityAmount * reserve1) / totalSupply
 
-        setExpectedToken0(ethers.formatUnits(token0Amount, selectedPool.token0.decimals))
-        setExpectedToken1(ethers.formatUnits(token1Amount, selectedPool.token1.decimals))
+        setExpectedToken0(ethers.formatUnits(expectedAmount0, selectedPool.token0.decimals))
+        setExpectedToken1(ethers.formatUnits(expectedAmount1, selectedPool.token1.decimals))
       } catch (error) {
         console.error("Error calculating expected tokens:", error)
-        setError("Error calculating expected tokens. Please try again.")
         setExpectedToken0("0")
         setExpectedToken1("0")
-      } finally {
-        setIsLoading(false)
       }
     }
 
@@ -163,7 +183,6 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
   }, [selectedPool, amount, provider])
 
   const handleAmountChange = (value: string) => {
-    // Only allow numbers and decimals
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setAmount(value)
     }
@@ -174,7 +193,7 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
   }
 
   const handleApprove = async () => {
-    if (!isConnected || !signer || !selectedPool || !account) {
+    if (!isConnected || !selectedPool || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
@@ -187,6 +206,11 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     setError(null)
 
     try {
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("Failed to get signer")
+      }
+
       console.log("Approving LP tokens:", selectedPool.id)
       // Aprobar exactamente la cantidad necesaria en lugar de un monto ilimitado
       const liquidityAmount = ethers.parseUnits(amount, 18) // LP tokens suelen tener 18 decimales
@@ -215,19 +239,10 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
   }
 
   const handleRemoveLiquidity = async () => {
-    if (!isConnected || !signer || !selectedPool || !amount || !account) {
+    if (!isConnected || !selectedPool || !amount || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!isApproved) {
-      toast({
-        title: "Error",
-        description: "Please approve the liquidity tokens first.",
         variant: "destructive",
       })
       return
@@ -237,59 +252,51 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     setError(null)
 
     try {
-      console.log("Removing liquidity for pair:", selectedPool.id)
-      const deadlineTime = Math.floor(Date.now() / 1000) + 20 * 60 // 20 minutes
-      console.log("Deadline:", deadlineTime)
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("Failed to get signer")
+      }
 
-      const liquidityAmount = ethers.parseUnits(amount, 18) // Assuming 18 decimals for LP tokens
-      console.log("Liquidity amount:", liquidityAmount.toString())
+      const deadlineTime = Math.floor(Date.now() / 1000) + 20 * 60 // 20 minutes
+      const liquidityAmount = ethers.parseUnits(amount, 18)
 
       // Calculate minimum amounts (with 1% slippage)
-      // Convert expected amounts to BigInt with 1% slippage
-      const token0Decimals = Number(selectedPool.token0.decimals)
-      const token1Decimals = Number(selectedPool.token1.decimals)
+      const expectedAmount0Wei = ethers.parseUnits(expectedToken0, selectedPool.token0.decimals)
+      const expectedAmount1Wei = ethers.parseUnits(expectedToken1, selectedPool.token1.decimals)
+      const amount0Min = (expectedAmount0Wei * BigInt(99)) / BigInt(100)
+      const amount1Min = (expectedAmount1Wei * BigInt(99)) / BigInt(100)
 
-      // Calculate minimum amounts safely
-      const expectedToken0Value = Number.parseFloat(expectedToken0)
-      const expectedToken1Value = Number.parseFloat(expectedToken1)
-
-      const minToken0 = expectedToken0Value * 0.99
-      const minToken1 = expectedToken1Value * 0.99
-
-      // Format as strings with the correct number of decimals
-      const minToken0Str = minToken0.toFixed(token0Decimals)
-      const minToken1Str = minToken1.toFixed(token1Decimals)
-
-      // Parse to BigInt with the correct decimals
-      const amountAMin = ethers.parseUnits(minToken0Str, token0Decimals)
-      const amountBMin = ethers.parseUnits(minToken1Str, token1Decimals)
-
-      console.log("Min token0 amount:", amountAMin.toString())
-      console.log("Min token1 amount:", amountBMin.toString())
+      console.log("Removing liquidity with parameters:", {
+        token0: selectedPool.token0.address,
+        token1: selectedPool.token1.address,
+        liquidity: liquidityAmount.toString(),
+        amount0Min: amount0Min.toString(),
+        amount1Min: amount1Min.toString(),
+        account,
+        deadlineTime,
+      })
 
       let tx
 
-      // If one of the tokens is native CHZ or WCHZ
-      if (selectedPool.token0.address === ethers.ZeroAddress || selectedPool.token0.address === WETH_ADDRESS) {
-        // If token0 is CHZ/WCHZ, use removeLiquidityETH with token1
-        console.log("Removing liquidity with ETH (token0 is native)")
+      // Check if one of the tokens is native CHZ (address zero)
+      if (selectedPool.token0.address === ethers.ZeroAddress) {
+        console.log("Removing liquidity with ETH as token0")
         tx = await removeLiquidityETH(
           selectedPool.token1.address,
           liquidityAmount,
-          amountBMin,
-          amountAMin,
+          amount1Min,
+          amount0Min,
           account,
           deadlineTime,
           signer,
         )
-      } else if (selectedPool.token1.address === ethers.ZeroAddress || selectedPool.token1.address === WETH_ADDRESS) {
-        // If token1 is CHZ/WCHZ, use removeLiquidityETH with token0
-        console.log("Removing liquidity with ETH (token1 is native)")
+      } else if (selectedPool.token1.address === ethers.ZeroAddress) {
+        console.log("Removing liquidity with ETH as token1")
         tx = await removeLiquidityETH(
           selectedPool.token0.address,
           liquidityAmount,
-          amountAMin,
-          amountBMin,
+          amount0Min,
+          amount1Min,
           account,
           deadlineTime,
           signer,
@@ -301,23 +308,22 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
           selectedPool.token0.address,
           selectedPool.token1.address,
           liquidityAmount,
-          amountAMin,
-          amountBMin,
+          amount0Min,
+          amount1Min,
           account,
           deadlineTime,
           signer,
         )
       }
 
-      console.log("Remove liquidity transaction:", tx)
+      console.log("Transaction successful:", tx)
 
       // Guardar los detalles para la confirmación
       setConfirmationDetails({
-        token0: selectedPool.token0,
-        token1: selectedPool.token1,
-        amount0: expectedToken0,
-        amount1: expectedToken1,
-        lpAmount: amount,
+        pool: selectedPool,
+        amount,
+        expectedToken0,
+        expectedToken1,
       })
 
       // Guardar el hash de la transacción
@@ -331,13 +337,12 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
         description: "Liquidity removed successfully!",
       })
 
-      // Después de quitar liquidez exitosamente, actualizar el balance
+      // Después de remover liquidez exitosamente, actualizar el balance
       if (isConnected && provider && account) {
         // Usar setTimeout para asegurar que la actualización ocurra fuera del ciclo de renderizado actual
         setTimeout(async () => {
           try {
-            // Actualizar el balance global
-            await refreshBalance()
+            // Placeholder for refreshBalance function
           } catch (error) {
             console.error("Error refreshing balance after removing liquidity:", error)
           }
@@ -347,10 +352,27 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
       // No reseteamos el formulario aquí, lo haremos cuando se cierre el diálogo
     } catch (error) {
       console.error("Error removing liquidity:", error)
-      setError("Error removing liquidity. Please try again.")
+
+      // Provide more detailed error message
+      let errorMessage = "Failed to remove liquidity. Please try again."
+
+      if (error instanceof Error) {
+        console.error("Error details:", error.message)
+
+        // Extract useful information from common error messages
+        if (error.message.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds to complete this transaction."
+        } else if (error.message.includes("user rejected")) {
+          errorMessage = "Transaction was rejected in your wallet."
+        } else if (error.message.includes("gas required exceeds")) {
+          errorMessage = "Transaction would exceed gas limit. Try a smaller amount."
+        }
+      }
+
+      setError(errorMessage)
       toast({
         title: "Error",
-        description: "Failed to remove liquidity. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -364,23 +386,15 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     setAmount("")
   }
 
-  // If there are no pools, show a message
   if (pools.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Remove Liquidity</CardTitle>
-          <CardDescription>Remove liquidity from a pool</CardDescription>
+          <CardDescription>Remove your liquidity from pools</CardDescription>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <p>You don't have any liquidity positions yet. Add liquidity first to be able to remove it.</p>
-          <Button
-            variant="link"
-            className="text-primary"
-            onClick={() => document.querySelector('[data-value="add"]')?.click()}
-          >
-            Add Liquidity
-          </Button>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">No liquidity positions found.</p>
         </CardContent>
       </Card>
     )
@@ -390,19 +404,25 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     <Card>
       <CardHeader>
         <CardTitle>Remove Liquidity</CardTitle>
-        <CardDescription>Remove liquidity from a pool</CardDescription>
+        <CardDescription>Remove your liquidity from pools</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">{error}</div>}
+        {error && (
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
+            {error}
+          </div>
+        )}
 
+        {/* Pool Selection */}
         <div className="space-y-2">
-          <Label htmlFor="pool-select">Select pool</Label>
+          <Label>Select Pool</Label>
           <select
-            id="pool-select"
-            value={selectedPool?.id}
-            onChange={(e) => setSelectedPool(pools.find((pool) => pool.id === e.target.value))}
-            className="w-full border border-input bg-input text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
-            disabled={isLoading}
+            className="w-full p-2 border rounded-md bg-background"
+            value={selectedPool?.id || ""}
+            onChange={(e) => {
+              const pool = pools.find((p) => p.id === e.target.value)
+              if (pool) setSelectedPool(pool)
+            }}
           >
             {pools.map((pool) => (
               <option key={pool.id} value={pool.id}>
@@ -412,93 +432,85 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
           </select>
         </div>
 
+        {/* Amount Input */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="amount">Amount</Label>
-            {account && selectedPool && (
+            <Label htmlFor="liquidity-amount">Amount to Remove</Label>
+            {account && (
               <span className="text-xs text-muted-foreground">
-                {isLoading ? (
-                  <RefreshCw className="h-3 w-3 inline animate-spin mr-1" />
-                ) : (
-                  `Balance: ${formatCurrency(Number(maxLiquidity))} LP`
-                )}
+                Max: {formatCurrency(Number(maxLiquidity))} LP tokens
               </span>
             )}
           </div>
-          <div className="relative">
-            <Input
-              id="amount"
-              placeholder="0.0"
-              value={amount}
-              onChange={(e) => handleAmountChange(e.target.value)}
-              className="w-full pr-16"
-              disabled={isLoading}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1 h-7 text-xs"
-              onClick={handleSetMaxAmount}
-              disabled={isLoading}
-            >
-              MAX
-            </Button>
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Input
+                id="liquidity-amount"
+                placeholder="0.0"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                className="pr-20"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1 h-7 text-xs"
+                onClick={handleSetMaxAmount}
+              >
+                MAX
+              </Button>
+            </div>
           </div>
         </div>
 
+        {/* Expected Output */}
         {selectedPool && amount && Number(amount) > 0 && (
           <div className="rounded-lg bg-muted p-3 space-y-2 text-sm">
-            <div className="text-muted-foreground mb-2">
-              {isLoading ? (
-                <div className="flex items-center">
-                  <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-                  Calculating...
-                </div>
-              ) : (
-                "You will receive approximately:"
-              )}
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">You will receive</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>{selectedPool.token0.symbol}</span>
               <span>{formatCurrency(Number(expectedToken0))}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>{selectedPool.token1.symbol}</span>
               <span>{formatCurrency(Number(expectedToken1))}</span>
             </div>
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         {!isConnected ? (
           <Button className="w-full" disabled>
             Connect wallet to continue
           </Button>
+        ) : isLoading ? (
+          <Button className="w-full" disabled>
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            Loading...
+          </Button>
         ) : !isApproved ? (
-          <Button
-            className="w-full"
-            onClick={handleApprove}
-            disabled={isApproving || isLoading || !selectedPool || !amount || Number(amount) === 0}
-          >
+          <Button className="w-full" onClick={handleApprove} disabled={isApproving || !amount || Number(amount) === 0}>
             {isApproving ? (
               <>
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 Approving...
               </>
             ) : (
-              "Approve LP tokens"
+              "Approve LP Tokens"
             )}
           </Button>
         ) : (
           <Button
             className="w-full"
             onClick={handleRemoveLiquidity}
-            disabled={isRemoving || isLoading || !selectedPool || !amount || Number(amount) === 0}
+            disabled={isRemoving || !amount || Number(amount) === 0}
           >
             {isRemoving ? (
               <>
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Removing...
+                Removing liquidity...
               </>
             ) : (
               "Remove liquidity"
@@ -509,11 +521,11 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
       <RemoveLiquidityConfirmationDialog
         isOpen={isConfirmationOpen}
         onClose={handleConfirmationClose}
-        token0={confirmationDetails.token0}
-        token1={confirmationDetails.token1}
-        amount0={confirmationDetails.amount0}
-        amount1={confirmationDetails.amount1}
-        lpAmount={confirmationDetails.lpAmount}
+        token0={confirmationDetails.pool?.token0}
+        token1={confirmationDetails.pool?.token1}
+        amount0={confirmationDetails.expectedToken0}
+        amount1={confirmationDetails.expectedToken1}
+        lpAmount={confirmationDetails.amount}
         txHash={txHash}
       />
     </Card>

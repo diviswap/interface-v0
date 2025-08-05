@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BarChart, LineChart } from "lucide-react"
 import { useSearchParams } from "next/navigation"
+import { useTranslation } from "@/lib/i18n/context"
 
 const POOL_OPTIONS = [
   { label: "DSwap/wCHZ", value: "0xb0a8310f11be8dfeea4e200b9935b815f3faa2fa" },
@@ -15,6 +16,7 @@ const POOL_OPTIONS = [
 ]
 
 function ChartsPage() {
+  const { t } = useTranslation()
   const searchParams = useSearchParams()
   const [poolAddress, setPoolAddress] = useState(POOL_OPTIONS[0].value)
   const [chartType, setChartType] = useState("price")
@@ -31,18 +33,18 @@ function ChartsPage() {
 
   return (
     <div className="container mx-auto p-4 min-h-[calc(100vh-4rem)]">
-      <h1 className="text-4xl font-bold mb-6 text-white text-center">Charts</h1>
+      <h1 className="text-4xl font-bold mb-6 text-white text-center">{t.charts.title}</h1>
       <Card className="overflow-hidden bg-card/80 backdrop-blur-sm border border-primary/10">
         <CardHeader className="pb-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle className="text-2xl text-primary">Market Analysis</CardTitle>
-              <CardDescription>Powered by GeckoTerminal</CardDescription>
+              <CardTitle className="text-2xl text-primary">{t.charts.marketAnalysis}</CardTitle>
+              <CardDescription>{t.charts.poweredBy}</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <Select value={poolAddress} onValueChange={setPoolAddress}>
                 <SelectTrigger className="w-[180px] bg-background/50 border border-input/20">
-                  <SelectValue placeholder="Select pool" />
+                  <SelectValue placeholder={t.charts.selectPool} />
                 </SelectTrigger>
                 <SelectContent>
                   {POOL_OPTIONS.map((option) => (
@@ -59,14 +61,14 @@ function ChartsPage() {
                     className="flex items-center gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     <LineChart className="h-4 w-4" />
-                    <span className="hidden sm:inline">Price</span>
+                    <span className="hidden sm:inline">{t.charts.price}</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="liquidity"
                     className="flex items-center gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     <BarChart className="h-4 w-4" />
-                    <span className="hidden sm:inline">Liquidity</span>
+                    <span className="hidden sm:inline">{t.charts.liquidity}</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -90,9 +92,7 @@ function ChartsPage() {
         </CardContent>
       </Card>
 
-      <div className="text-xs text-muted-foreground text-center mt-4">
-        Market data is provided by GeckoTerminal. DiviSwap does not guarantee the accuracy of this data.
-      </div>
+      <div className="text-xs text-muted-foreground text-center mt-4">{t.charts.dataDisclaimer}</div>
     </div>
   )
 }

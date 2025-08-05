@@ -9,6 +9,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@dicebear/collection": "latest",
+    "@dicebear/core": "latest",
     "@emotion/is-prop-valid": "latest",
     "@ethersproject/abi": "latest",
     "@ethersproject/address": "latest",
@@ -46,7 +48,7 @@
     "@radix-ui/react-tooltip": "latest",
     "@remix-run/react": "latest",
     "@sveltejs/kit": "latest",
-    "@tanstack/react-query": "^5.45.1",
+    "@tanstack/react-query": "latest",
     "@uniswap/sdk": "latest",
     "@vercel/analytics": "latest",
     "@web3-react/core": "^8.2.3",
@@ -64,13 +66,14 @@
     "react": "^18",
     "react-dom": "^18",
     "recharts": "latest",
+    "sonner": "latest",
     "svelte": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "viem": "^2.16.0",
+    "viem": "latest",
     "vue": "latest",
     "vue-router": "latest",
-    "wagmi": "^2.10.0"
+    "wagmi": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

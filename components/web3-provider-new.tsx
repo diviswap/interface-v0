@@ -1,0 +1,52 @@
+"use client"
+
+import type * as React from "react"
+import { WagmiProvider, createConfig, http } from "wagmi"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { chilizMainnet } from "@/lib/chains"
+import { walletConnect, injected, coinbaseWallet } from "wagmi/connectors"
+
+const queryClient = new QueryClient()
+
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+
+if (!projectId) {
+  console.error("WalletConnect Project ID is not set")
+}
+
+const config = createConfig({
+  chains: [chilizMainnet],
+  connectors: [
+    injected({
+      target: "metaMask",
+    }),
+    walletConnect({
+      projectId: projectId || "",
+      metadata: {
+        name: "DiviSwap",
+        description: "Decentralized Exchange on Chiliz Chain",
+        url: "https://diviswap.io",
+        icons: ["/logo.png"],
+      },
+      showQrModal: true,
+    }),
+    coinbaseWallet({
+      appName: "DiviSwap",
+      appLogoUrl: "/logo.png",
+    }),
+    injected(),
+  ],
+  transports: {
+    [chilizMainnet.id]: http(),
+  },
+})
+
+export function Web3Provider({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+
+export { config }

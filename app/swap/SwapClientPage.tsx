@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { useWeb3 } from "@/components/web3-provider"
+import { useAccount, useWalletClient, usePublicClient } from "wagmi"
 import { TokenSelector } from "@/components/token-selector"
 import { SettingsDialog } from "@/components/settings-dialog"
+import { useTranslation } from "@/lib/i18n/context"
 import {
   ROUTER_ADDRESS,
   DEFAULT_SLIPPAGE,
@@ -21,7 +22,6 @@ import {
 import {
   getRouterContract,
   checkAllowance,
-  approveToken,
   swapExactTokensForTokens,
   swapExactETHForTokens,
   swapExactTokensForETH,
@@ -35,8 +35,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { TOKEN_LIST } from "@/lib/token-list"
 
 function SwapPage() {
-  const { provider, signer, account, isConnected, refreshBalance } = useWeb3()
+  const { address: account, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [slippage, setSlippage] = useState(DEFAULT_SLIPPAGE)
@@ -56,6 +59,7 @@ function SwapPage() {
   const [isApproving, setIsApproving] = useState(false)
   const [isSwapping, setIsSwapping] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false)
   const [fromBalance, setFromBalance] = useState<string>("0")
   const [toBalance, setToBalance] = useState<string>("0")
   const [quoteError, setQuoteError] = useState<string | null>(null)
@@ -72,20 +76,37 @@ function SwapPage() {
     toAmount: "",
   })
   const [activeInput, setActiveInput] = useState<number | null>(null)
-  // Add a new state variable to track if we're using the Kayen router
   const [isUsingKayenRouter, setIsUsingKayenRouter] = useState(false)
-  // Add a state to track if we need to approve for Kayen router
   const [isApprovedForKayen, setIsApprovedForKayen] = useState(false)
+  const [isUserTyping, setIsUserTyping] = useState(false)
+  const [lastUserInput, setLastUserInput] = useState(Date.now())
+
+  const provider = publicClient
+    ? new ethers.JsonRpcProvider(publicClient.transport.url, {
+        chainId: publicClient.chain.id,
+        name: publicClient.chain.name,
+      })
+    : null
+
+  const getSigner = async () => {
+    if (!walletClient) return null
+    try {
+      const provider = new ethers.BrowserProvider(walletClient.transport)
+      return await provider.getSigner()
+    } catch (error) {
+      console.error("Error getting signer:", error)
+      return null
+    }
+  }
 
   useEffect(() => {
     const checkTokenAllowance = async () => {
-      if (!isConnected || !signer || !fromToken || !fromAmount) {
+      if (!isConnected || !provider || !fromToken || !fromAmount || !account) {
         setIsApproved(false)
         setIsApprovedForKayen(false)
         return
       }
 
-      // No necesitamos verificar la aprobación para el token nativo (CHZ)
       if (fromToken.address === ethers.ZeroAddress) {
         setIsApproved(true)
         setIsApprovedForKayen(true)
@@ -95,11 +116,9 @@ function SwapPage() {
       try {
         const amountWei = ethers.parseUnits(fromAmount, fromToken.decimals)
 
-        // Check allowance for main router
         const allowance = await checkAllowance(fromToken.address, account, ROUTER_ADDRESS, provider)
         setIsApproved(BigInt(allowance) >= amountWei)
 
-        // Check allowance for Kayen router
         const kayenAllowance = await checkAllowance(fromToken.address, account, KAYEN_ROUTER_ADDRESS, provider)
         setIsApprovedForKayen(BigInt(kayenAllowance) >= amountWei)
       } catch (error) {
@@ -115,28 +134,34 @@ function SwapPage() {
     }
 
     checkTokenAllowance()
-  }, [isConnected, provider, signer, account, fromToken, fromAmount, toast])
+  }, [isConnected, provider, account, fromToken, fromAmount, toast])
 
   useEffect(() => {
     const getQuote = async () => {
+      if (!isConnected || !account) {
+        setToAmount("")
+        setExchangeRate(0)
+        setPriceImpact(0)
+        setCurrentTrade(null)
+        setQuoteError(null)
+        setIsLoadingQuote(false)
+        return
+      }
+
       if (!fromToken || !toToken || !fromAmount || Number(fromAmount) === 0 || !provider) {
         setToAmount("")
         setExchangeRate(0)
         setPriceImpact(0)
-        setQuoteError(null)
         setCurrentTrade(null)
-        setTradePath([])
-        setIsMultiHopRoute(false)
-        setRouteDescription("")
-        setIsUsingKayenRouter(false)
+        setQuoteError(null)
+        setIsLoadingQuote(false)
         return
       }
 
-      setIsLoading(true)
+      setIsLoadingQuote(true)
       setQuoteError(null)
 
       try {
-        // Convertir tokens al formato requerido
         const tokenA: TokenInfo = {
           address: fromToken.address,
           symbol: fromToken.symbol,
@@ -151,14 +176,11 @@ function SwapPage() {
           decimals: toToken.decimals,
         }
 
-        // Calcular el monto de entrada en wei
         const amountIn = ethers.parseUnits(fromAmount, fromToken.decimals)
 
-        // Buscar la mejor ruta disponible
         const bestRoute = await findBestRoute(tokenA, tokenB, provider, amountIn)
 
         if (bestRoute.exists) {
-          // Crear información del trade con la ruta encontrada
           const trade = createTrade(
             amountIn,
             bestRoute.path,
@@ -168,13 +190,11 @@ function SwapPage() {
             bestRoute.priceImpact,
           )
 
-          // Guardar el trade actual
           setCurrentTrade(trade)
           setTradePath(trade.path)
           setIsMultiHopRoute(bestRoute.path.length > 2)
           setIsUsingKayenRouter(bestRoute.isKayenRouter || false)
 
-          // Crear descripción de la ruta
           if (bestRoute.path.length > 2) {
             const routeSymbols = bestRoute.path.map((token) => token.symbol).join(" → ")
             setRouteDescription(routeSymbols)
@@ -182,7 +202,6 @@ function SwapPage() {
             setRouteDescription("")
           }
 
-          // Actualizar la interfaz de usuario
           setToAmount(ethers.formatUnits(trade.outputAmount, toToken.decimals))
           setExchangeRate(trade.executionPrice)
           setPriceImpact(trade.priceImpact)
@@ -203,39 +222,51 @@ function SwapPage() {
         setRouteDescription("")
         setIsUsingKayenRouter(false)
 
-        // Establecer un mensaje de error más específico
         if (error instanceof Error) {
           if (error.message === "PAIR_DOES_NOT_EXIST" || error.message === "NO_ROUTE_FOUND") {
-            setQuoteError("No liquidity available for this token pair. Try another pair or add liquidity first.")
+            setQuoteError(t.swap.errors.pairDoesNotExist)
           } else if (error.message === "INSUFFICIENT_LIQUIDITY") {
-            setQuoteError("Insufficient liquidity for this token pair")
+            setQuoteError(t.swap.errors.insufficientLiquidity)
           } else {
-            setQuoteError("Unable to get quote. Please try again later.")
+            setQuoteError(t.swap.errors.unableToGetQuote)
           }
         } else {
-          setQuoteError("No se pudo obtener la cotización. Intenta de nuevo más tarde.")
+          setQuoteError(t.swap.errors.unableToGetQuote)
         }
       } finally {
-        setIsLoading(false)
+        setIsLoadingQuote(false)
       }
     }
 
-    // Use a debounce function to prevent rapid consecutive calls
-    const debounce = (func: Function, delay: number) => {
-      let timeoutId: NodeJS.Timeout
-      return (...args: any[]) => {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => func(...args), delay)
-      }
+    let debounceTimeout: NodeJS.Timeout
+    let priceUpdateInterval: NodeJS.Timeout
+
+    const debouncedGetQuote = () => {
+      clearTimeout(debounceTimeout)
+      debounceTimeout = setTimeout(() => {
+        getQuote()
+        setIsUserTyping(false)
+      }, 500)
     }
 
-    const debouncedGetQuote = debounce(getQuote, 500)
+    const setupPriceUpdateInterval = () => {
+      priceUpdateInterval = setInterval(() => {
+        const timeSinceLastInput = Date.now() - lastUserInput
+        if (!isUserTyping && timeSinceLastInput > 2000) {
+          console.log("Auto-updating prices (30s interval)")
+          getQuote()
+        }
+      }, 30000) // 30 seconds
+    }
 
     debouncedGetQuote()
+    setupPriceUpdateInterval()
 
-    // Clean up the debounce on component unmount
-    return () => clearTimeout(debouncedGetQuote as unknown as NodeJS.Timeout)
-  }, [fromToken, toToken, fromAmount, provider])
+    return () => {
+      clearTimeout(debounceTimeout)
+      clearInterval(priceUpdateInterval)
+    }
+  }, [fromToken, toToken, fromAmount, provider, isUserTyping, lastUserInput])
 
   useEffect(() => {
     const updateBalances = async () => {
@@ -245,7 +276,6 @@ function SwapPage() {
             let fromBalance
             try {
               if (fromToken.address === ethers.ZeroAddress) {
-                // Native CHZ token - Add retry mechanism
                 let retries = 0
                 const maxRetries = 3
                 let success = false
@@ -259,7 +289,6 @@ function SwapPage() {
                     console.warn(`Attempt ${retries + 1}/${maxRetries} failed to fetch native CHZ balance:`, error)
                     retries++
                     if (retries < maxRetries) {
-                      // Add exponential backoff delay
                       await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, retries)))
                     } else {
                       console.error("Failed to fetch native CHZ balance after multiple attempts")
@@ -268,7 +297,6 @@ function SwapPage() {
                   }
                 }
               } else {
-                // ERC20 token
                 const tokenContract = new ethers.Contract(fromToken.address, ERC20_ABI, provider)
                 fromBalance = await tokenContract.balanceOf(account)
                 setFromBalance(ethers.formatUnits(fromBalance, fromToken.decimals))
@@ -283,7 +311,6 @@ function SwapPage() {
             let toBalance
             try {
               if (toToken.address === ethers.ZeroAddress) {
-                // Native CHZ token - Add retry mechanism
                 let retries = 0
                 const maxRetries = 3
                 let success = false
@@ -297,7 +324,6 @@ function SwapPage() {
                     console.warn(`Attempt ${retries + 1}/${maxRetries} failed to fetch native CHZ balance:`, error)
                     retries++
                     if (retries < maxRetries) {
-                      // Add exponential backoff delay
                       await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, retries)))
                     } else {
                       console.error("Failed to fetch native CHZ balance after multiple attempts")
@@ -306,7 +332,6 @@ function SwapPage() {
                   }
                 }
               } else {
-                // ERC20 token
                 const tokenContract = new ethers.Contract(toToken.address, ERC20_ABI, provider)
                 toBalance = await tokenContract.balanceOf(account)
                 setToBalance(ethers.formatUnits(toBalance, toToken.decimals))
@@ -337,6 +362,8 @@ function SwapPage() {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setFromAmount(value)
       setActiveInput(0)
+      setIsUserTyping(true)
+      setLastUserInput(Date.now())
     }
   }
 
@@ -344,6 +371,8 @@ function SwapPage() {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setToAmount(value)
       setActiveInput(1)
+      setIsUserTyping(true)
+      setLastUserInput(Date.now())
     }
   }
 
@@ -356,7 +385,7 @@ function SwapPage() {
   }
 
   const handleApprove = async () => {
-    if (!isConnected || !signer || !fromToken) {
+    if (!isConnected || !fromToken || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
@@ -365,7 +394,6 @@ function SwapPage() {
       return
     }
 
-    // No necesitamos aprobar el token nativo (CHZ)
     if (fromToken.address === ethers.ZeroAddress) {
       setIsApproved(true)
       setIsApprovedForKayen(true)
@@ -375,19 +403,24 @@ function SwapPage() {
     setIsApproving(true)
 
     try {
-      // Determine which router to approve for
-      const routerAddress = isUsingKayenRouter ? KAYEN_ROUTER_ADDRESS : ROUTER_ADDRESS
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("No signer available")
+      }
 
-      // Aprobar exactamente la cantidad necesaria en lugar de un monto ilimitado
+      const routerAddress = isUsingKayenRouter ? KAYEN_ROUTER_ADDRESS : ROUTER_ADDRESS
+      const tokenContract = new ethers.Contract(fromToken.address, ERC20_ABI, signer)
       const amountWei = ethers.parseUnits(fromAmount, fromToken.decimals)
-      const tx = await approveToken(fromToken.address, routerAddress, amountWei, signer)
+
+      const tx = await tokenContract.approve(routerAddress, amountWei)
+
+      await tx.wait()
 
       toast({
         title: "Success",
         description: `Token approved successfully for ${isUsingKayenRouter ? "Kayen" : "main"} router!`,
       })
 
-      // Update the appropriate approval state
       if (isUsingKayenRouter) {
         setIsApprovedForKayen(true)
       } else {
@@ -406,7 +439,7 @@ function SwapPage() {
   }
 
   const handleSwap = async () => {
-    if (!isConnected || !signer || !fromToken || !toToken || !currentTrade) {
+    if (!isConnected || !fromToken || !toToken || !currentTrade || !account) {
       toast({
         title: "Error",
         description: "Please connect your wallet first.",
@@ -415,7 +448,6 @@ function SwapPage() {
       return
     }
 
-    // Check if we need approval based on which router we're using
     const needsApproval = isUsingKayenRouter ? !isApprovedForKayen : !isApproved
 
     if (needsApproval && fromToken.address !== ethers.ZeroAddress) {
@@ -430,7 +462,11 @@ function SwapPage() {
     setIsSwapping(true)
 
     try {
-      // Use the appropriate router based on the trade
+      const signer = await getSigner()
+      if (!signer) {
+        throw new Error("Failed to get signer")
+      }
+
       const routerAddress = isUsingKayenRouter ? KAYEN_ROUTER_ADDRESS : ROUTER_ADDRESS
       const router = getRouterContract(signer, routerAddress)
       const deadlineTime = Math.floor(Date.now() / 1000) + deadline * 60
@@ -440,24 +476,16 @@ function SwapPage() {
 
       let tx
 
-      // Usar la ruta correcta según si es un swap directo o multi-hop
-      // Para tokens nativos, necesitamos usar WCHZ en la ruta
       const path = tradePath.map((addr) => (addr === ethers.ZeroAddress ? WCHZ_ADDRESS : addr))
 
-      // Si fromToken es native token (CHZ)
       if (fromToken.address === ethers.ZeroAddress) {
         tx = await swapExactETHForTokens(router, amountIn, minAmountOut, path, account, deadlineTime, signer)
-      }
-      // Si toToken es native token (CHZ)
-      else if (toToken.address === ethers.ZeroAddress) {
+      } else if (toToken.address === ethers.ZeroAddress) {
         tx = await swapExactTokensForETH(router, amountIn, minAmountOut, path, account, deadlineTime, signer)
-      }
-      // Si ambos son tokens ERC20
-      else {
+      } else {
         tx = await swapExactTokensForTokens(router, amountIn, minAmountOut, path, account, deadlineTime, signer)
       }
 
-      // Guardar los detalles del swap para mostrarlos en el diálogo de confirmación
       setSwapDetails({
         fromToken,
         toToken,
@@ -465,39 +493,17 @@ function SwapPage() {
         toAmount,
       })
 
-      // Guardar el hash de la transacción
       setSwapTxHash(tx.hash)
-
-      // Mostrar el diálogo de confirmación
-      setIsConfirmationOpen(true)
 
       toast({
         title: "Success",
         description: `Swap executed successfully!`,
       })
 
-      // Después de un swap exitoso, actualizar el balance
-      if (isConnected && provider && account) {
-        // Usar setTimeout para asegurar que la actualización ocurra fuera del ciclo de renderizado actual
-        setTimeout(async () => {
-          try {
-            // Actualizar balances locales
-            if (fromToken) {
-              const fromBalance = await getTokenBalance(fromToken, account, provider)
-              setFromBalance(fromBalance)
-            }
-            if (toToken) {
-              const toBalance = await getTokenBalance(toToken, account, provider)
-              setToBalance(toBalance)
-            }
-
-            // Actualizar el balance global
-            await refreshBalance()
-          } catch (error) {
-            console.error("Error refreshing balance after swap:", error)
-          }
-        }, 100)
-      }
+      setTimeout(() => {
+        setFromAmount("")
+        setToAmount("")
+      }, 1000)
     } catch (error) {
       console.error("Error executing swap:", error)
       toast({
@@ -512,7 +518,6 @@ function SwapPage() {
 
   const handleConfirmationClose = () => {
     setIsConfirmationOpen(false)
-    // Resetear formulario después de cerrar el diálogo
     setFromAmount("")
     setToAmount("")
     setCurrentTrade(null)
@@ -522,7 +527,6 @@ function SwapPage() {
     setIsUsingKayenRouter(false)
   }
 
-  // Improved token balance fetching with retry mechanism
   const getTokenBalance = async (token: any, account: string, provider: ethers.Provider): Promise<string> => {
     const maxRetries = 3
     let retries = 0
@@ -530,11 +534,9 @@ function SwapPage() {
     while (retries < maxRetries) {
       try {
         if (token.address === ethers.ZeroAddress) {
-          // Native CHZ token
           const balance = await provider.getBalance(account)
           return ethers.formatUnits(balance, token.decimals)
         } else {
-          // ERC20 token
           const tokenContract = new ethers.Contract(token.address, ERC20_ABI, provider)
           const balance = await tokenContract.balanceOf(account)
           return ethers.formatUnits(balance, token.decimals)
@@ -543,7 +545,6 @@ function SwapPage() {
         console.warn(`Attempt ${retries + 1}/${maxRetries} failed to fetch balance:`, error)
         retries++
         if (retries < maxRetries) {
-          // Add exponential backoff delay
           await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, retries)))
         } else {
           console.error(`Failed to fetch balance for token after ${maxRetries} attempts`)
@@ -551,22 +552,20 @@ function SwapPage() {
         }
       }
     }
-
-    return "0" // Default return if all retries fail
+    return "0"
   }
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-12">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center justify-center mb-6">
-          <h1 className="text-4xl font-bold text-white text-center">Swap Tokens Instantly</h1>
+          <h1 className="text-4xl font-bold text-white text-center">{t.swap.title}</h1>
         </div>
 
         <Card className="overflow-hidden border-2 border-primary/10 bg-gradient-to-b from-background to-background/50 shadow-xl">
           <CardContent className="p-6">
-            {/* Card Header */}
             <div className="flex justify-between items-center mb-6">
-              <p className="text-lg text-white">Trade your tokens with ease and efficiency</p>
+              <p className="text-lg text-white">{t.swap.tradeDescription}</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -580,21 +579,22 @@ function SwapPage() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Transaction Settings</p>
+                    <p>{t.swap.transactionSettings}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
 
-            {/* From Token Section */}
             <div className="space-y-2 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <Label htmlFor="from-amount" className="text-sm font-medium text-primary mb-1 sm:mb-0">
-                  From
+                  {t.swap.from}
                 </Label>
                 {account && fromToken && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Balance: {formatCurrency(Number(fromBalance))}</span>
+                    <span>
+                      {t.swap.balance}: {formatCurrency(Number(fromBalance))}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -623,7 +623,6 @@ function SwapPage() {
               </div>
             </div>
 
-            {/* Swap Button */}
             <div className="flex justify-center -my-2 sm:-my-3 relative z-10">
               <Button
                 variant="outline"
@@ -637,14 +636,15 @@ function SwapPage() {
               </Button>
             </div>
 
-            {/* To Token Section */}
             <div className="space-y-2 sm:space-y-4 mt-2 sm:mt-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <Label htmlFor="to-amount" className="text-sm font-medium text-primary mb-1 sm:mb-0">
-                  To
+                  {t.swap.to}
                 </Label>
                 {account && toToken && (
-                  <span className="text-xs text-muted-foreground">Balance: {formatCurrency(Number(toBalance))}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t.swap.balance}: {formatCurrency(Number(toBalance))}
+                  </span>
                 )}
               </div>
 
@@ -669,7 +669,6 @@ function SwapPage() {
               </div>
             </div>
 
-            {/* Loading Indicator */}
             {isLoading && (
               <div className="flex justify-center py-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -679,7 +678,6 @@ function SwapPage() {
               </div>
             )}
 
-            {/* Error Message */}
             {quoteError && (
               <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
                 <div className="flex items-center gap-2">
@@ -696,41 +694,8 @@ function SwapPage() {
               </div>
             )}
 
-            {/* Route Information */}
             {isMultiHopRoute && currentTrade && (
-              <div className="mt-4 rounded-lg bg-amber-500/10 dark:bg-amber-900/20 p-3 text-sm text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4" />
-                  <span>Using multi-hop route: {routeDescription}</span>
-                </div>
-              </div>
-            )}
-
-            {/* FanX Router Badge */}
-            {isUsingKayenRouter && (
-              <div className="mt-4 rounded-lg bg-amber-500/10 dark:bg-amber-900/20 p-3 text-sm text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-2">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 93 55"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="flex-shrink-0"
-                >
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M26.4379 15.542L3.05176e-05 15.542L2.9256e-05 2.31596e-06L28.532 0V7.9219e-05L32.3598 7.89083e-05L46.0227 27.3641H46.0223V54.7281H0V27.3641L32.3407 27.3641L26.4379 15.542ZM46.0227 27.3641V0.0003278H92.1516V27.3645H59.7049L65.6075 39.1862H92.1515V54.7282H63.5132V54.7281H59.6856L46.0229 27.3645H46.0227V27.3641Z"
-                    fill="#FFC400"
-                  ></path>
-                </svg>
-                <span>Using FanX liquidity pool</span>
-              </div>
-            )}
-
-            {/* Price Information */}
-            {fromToken && toToken && fromAmount && toAmount && !quoteError && (
-              <div className="mt-4 rounded-lg bg-secondary/80 p-4 space-y-3 text-sm">
+              <div className="mt-4 rounded-lg bg-amber-500/10 dark:bg-amber-900/20 p-4 space-y-3 text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Price</span>
                   <div className="flex items-center gap-1">
@@ -820,7 +785,6 @@ function SwapPage() {
               </div>
             )}
 
-            {/* Action Button */}
             <div className="mt-6">
               {!isConnected ? (
                 <Button className="w-full py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground" disabled>
@@ -828,17 +792,17 @@ function SwapPage() {
                 </Button>
               ) : !isApproved && !isApprovedForKayen && fromToken && fromToken.address !== ethers.ZeroAddress ? (
                 <Button
-                  className="w-full py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="w-full py-6 text-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                   onClick={handleApprove}
-                  disabled={isApproving || !fromToken || !toToken || !fromAmount || !toAmount}
+                  disabled={isApproving || !fromToken || !fromAmount || Number(fromAmount) === 0}
                 >
                   {isApproving ? (
                     <>
                       <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-                      Approving {fromToken?.symbol || ""}...
+                      {t.swap.approving} {fromToken?.symbol || ""}...
                     </>
                   ) : (
-                    `Approve ${fromToken?.symbol || ""} for ${isUsingKayenRouter ? "FanX" : "Main"} Router`
+                    `${t.swap.approve} ${fromToken?.symbol || ""}`
                   )}
                 </Button>
               ) : (
@@ -860,10 +824,10 @@ function SwapPage() {
                   {isSwapping ? (
                     <>
                       <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-                      Swapping...
+                      {t.swap.swapping}
                     </>
                   ) : (
-                    "Swap"
+                    t.swap.swap
                   )}
                 </Button>
               )}
@@ -871,7 +835,6 @@ function SwapPage() {
           </CardContent>
         </Card>
 
-        {/* Chiliz Chain Badge */}
         <div className="flex justify-center mt-8">
           <a
             href="https://www.chiliz.com"
@@ -888,7 +851,6 @@ function SwapPage() {
         </div>
       </div>
 
-      {/* Settings Dialog */}
       <SettingsDialog
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
@@ -898,7 +860,6 @@ function SwapPage() {
         onDeadlineChange={setDeadline}
       />
 
-      {/* Swap Confirmation Dialog */}
       <SwapConfirmationDialog
         isOpen={isConfirmationOpen}
         onClose={handleConfirmationClose}

@@ -1,28 +1,40 @@
 "use client"
-import { useState, useEffect } from "react"
+
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useAccount, usePublicClient } from "wagmi"
 import { ethers } from "ethers"
 import { RefreshCw, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/use-toast"
-import { useWeb3 } from "@/components/web3-provider"
-import { PoolCard } from "@/components/pool-card"
-import { AllPoolCard } from "@/components/all-pool-card"
+import { useToast } from "@/hooks/use-toast"
 import { AddLiquidityForm } from "@/components/add-liquidity-form"
 import { RemoveLiquidityForm } from "@/components/remove-liquidity-form"
+import PoolCard from "@/components/pool-card"
+import { AllPoolCard } from "@/components/all-pool-card"
 import { FACTORY_ABI, PAIR_ABI, ERC20_ABI, FACTORY_ADDRESS, WCHZ_ADDRESS, TOKEN_LIST } from "@/lib/constants"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useTranslation } from "@/lib/i18n/context"
 
 const getTokenLogoURI = (tokenAddress: string) => {
   const token = TOKEN_LIST.find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())
   return token?.logoURI || null
 }
 
-function PoolPage() {
-  const { provider, account, isConnected, refreshBalance } = useWeb3()
+export default function PoolPageClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
+  const { address: account, isConnected } = useAccount()
+  const publicClient = usePublicClient()
+  const { t } = useTranslation()
+
+  // Memoize provider to prevent recreation on every render
+  const provider = useMemo(() => {
+    if (!publicClient) return null
+    return new ethers.BrowserProvider(publicClient as any)
+  }, [publicClient])
 
   const [userPools, setUserPools] = useState([])
   const [allPools, setAllPools] = useState([])
@@ -31,46 +43,54 @@ function PoolPage() {
   const [activeTab, setActiveTab] = useState("positions")
   const [searchTerm, setSearchTerm] = useState("")
   const [initialTokens, setInitialTokens] = useState({
-    token0Address: null,
-    token1Address: null,
+    token0: null,
+    token1: null,
   })
   const [initialPairAddress, setInitialPairAddress] = useState<string | null>(null)
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  const hasInitialized = useRef(false)
 
-  useEffect(() => {
+  // Stabilize handleSearchParams to prevent unnecessary recreations
+  const handleSearchParams = useCallback(() => {
     const tab = searchParams.get("tab")
-    const removeParam = searchParams.get("remove")
-    const token0Address = searchParams.get("token0")
-    const token1Address = searchParams.get("token1")
-    const pairAddress = searchParams.get("pair")
+    const token0 = searchParams.get("token0")
+    const token1 = searchParams.get("token1")
+    // Added handling for remove and pair parameters
+    const remove = searchParams.get("remove")
+    const pair = searchParams.get("pair")
 
-    if (tab && ["positions", "all-pools", "add"].includes(tab)) {
-      setActiveTab(tab)
-
-      if (removeParam === "true" && tab === "add") {
-        setTimeout(() => {
-          const removeTab = document.querySelector('[value="remove"]')
-          if (removeTab) {
-            ;(removeTab as HTMLElement).click()
-          }
-        }, 100)
-      }
+    // Handle remove parameter to switch to add tab and set remove mode
+    if (remove === "true" && pair) {
+      setActiveTab("add")
+      setInitialPairAddress(pair)
+      // Clear the remove parameter from URL after handling
+      setTimeout(() => {
+        router.push("/pool?tab=add")
+      }, 100)
+      return
     }
 
-    if (token0Address || token1Address) {
-      setInitialTokens({
-        token0Address: token0Address || null,
-        token1Address: token1Address || null,
-      })
+    if (tab && ["positions", "add", "all-pools"].includes(tab)) {
+      setActiveTab(tab as "positions" | "add" | "all-pools")
     }
 
-    if (pairAddress) {
-      setInitialPairAddress(pairAddress)
+    if (token0 && token1) {
+      setInitialTokens({ token0, token1 })
+      setTimeout(() => {
+        router.push("/pool?tab=add")
+      }, 100)
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
-  const fetchUserPools = async () => {
+  // Only run handleSearchParams when searchParams actually changes
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      handleSearchParams()
+      hasInitialized.current = true
+    }
+  }, [handleSearchParams])
+
+  // Stabilize fetchUserPools with proper dependencies and prevent unnecessary recreations
+  const fetchUserPools = useCallback(async () => {
     if (!isConnected || !provider || !account) {
       setUserPools([])
       return
@@ -112,12 +132,30 @@ function PoolPage() {
 
             const [token0Symbol, token0Decimals, token0Name, token1Symbol, token1Decimals, token1Name] =
               await Promise.all([
-                token0Contract.symbol().catch(() => "Unknown"),
-                token0Contract.decimals().catch(() => 18),
-                token0Contract.name().catch(() => "Unknown Token"),
-                token1Contract.symbol().catch(() => "Unknown"),
-                token1Contract.decimals().catch(() => 18),
-                token1Contract.name().catch(() => "Unknown Token"),
+                token0Contract.symbol().catch((e) => {
+                  console.error("Error getting token0 symbol:", e)
+                  return "Unknown"
+                }),
+                token0Contract.decimals().catch((e) => {
+                  console.error("Error getting token0 decimals:", e)
+                  return 18
+                }),
+                token0Contract.name().catch((e) => {
+                  console.error("Error getting token0 name:", e)
+                  return "Unknown Token"
+                }),
+                token1Contract.symbol().catch((e) => {
+                  console.error("Error getting token1 symbol:", e)
+                  return "Unknown"
+                }),
+                token1Contract.decimals().catch((e) => {
+                  console.error("Error getting token1 decimals:", e)
+                  return 18
+                }),
+                token1Contract.name().catch((e) => {
+                  console.error("Error getting token1 name:", e)
+                  return "Unknown Token"
+                }),
               ])
 
             const token0 = {
@@ -150,16 +188,25 @@ function PoolPage() {
               token1.logoURI = getTokenLogoURI(WCHZ_ADDRESS)
             }
 
-            const token0Amount = (balance * reserves[0]) / totalSupply
-            const token1Amount = (balance * reserves[1]) / totalSupply
+            const balanceNum = Number(balance)
+            const totalSupplyNum = Number(totalSupply)
+            const reserve0Num = Number(reserves[0])
+            const reserve1Num = Number(reserves[1])
+
+            const token0Amount = totalSupplyNum > 0 ? (balanceNum * reserve0Num) / totalSupplyNum : 0
+            const token1Amount = totalSupplyNum > 0 ? (balanceNum * reserve1Num) / totalSupplyNum : 0
+
+            const liquidityTokensFormatted = balanceNum > 0 ? ethers.formatUnits(balance, 18) : "0"
 
             userPoolsData.push({
               id: pairAddress,
               token0,
               token1,
-              liquidityTokens: ethers.formatUnits(balance, 18),
-              token0Amount: ethers.formatUnits(token0Amount, token0.decimals),
-              token1Amount: ethers.formatUnits(token1Amount, token1.decimals),
+              liquidityTokens: liquidityTokensFormatted,
+              token0Amount:
+                token0Amount > 0 ? ethers.formatUnits(BigInt(Math.floor(token0Amount)), token0.decimals) : "0",
+              token1Amount:
+                token1Amount > 0 ? ethers.formatUnits(BigInt(Math.floor(token1Amount)), token1.decimals) : "0",
               reserve0: reserves[0],
               reserve1: reserves[1],
               totalSupply,
@@ -184,9 +231,10 @@ function PoolPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [isConnected, provider, account, toast])
 
-  const fetchAllPools = async () => {
+  // Stabilize fetchAllPools with proper dependencies
+  const fetchAllPools = useCallback(async () => {
     if (!provider) {
       setAllPools([])
       return
@@ -228,12 +276,30 @@ function PoolPage() {
 
           const [token0Symbol, token0Decimals, token0Name, token1Symbol, token1Decimals, token1Name] =
             await Promise.all([
-              token0Contract.symbol().catch(() => "Unknown"),
-              token0Contract.decimals().catch(() => 18),
-              token0Contract.name().catch(() => "Unknown Token"),
-              token1Contract.symbol().catch(() => "Unknown"),
-              token1Contract.decimals().catch(() => 18),
-              token1Contract.name().catch(() => "Unknown Token"),
+              token0Contract.symbol().catch((e) => {
+                console.error("Error getting token0 symbol:", e)
+                return "Unknown"
+              }),
+              token0Contract.decimals().catch((e) => {
+                console.error("Error getting token0 decimals:", e)
+                return 18
+              }),
+              token0Contract.name().catch((e) => {
+                console.error("Error getting token0 name:", e)
+                return "Unknown Token"
+              }),
+              token1Contract.symbol().catch((e) => {
+                console.error("Error getting token1 symbol:", e)
+                return "Unknown"
+              }),
+              token1Contract.decimals().catch((e) => {
+                console.error("Error getting token1 decimals:", e)
+                return 18
+              }),
+              token1Contract.name().catch((e) => {
+                console.error("Error getting token1 name:", e)
+                return "Unknown Token"
+              }),
             ])
 
           const token0 = {
@@ -330,17 +396,21 @@ function PoolPage() {
     } finally {
       setIsLoadingAllPools(false)
     }
-  }
+  }, [provider, toast])
 
+  // Only fetch user pools when dependencies actually change
   useEffect(() => {
-    fetchUserPools()
-  }, [isConnected, provider, account])
+    if (isConnected && provider && account && activeTab === "positions") {
+      fetchUserPools()
+    }
+  }, [isConnected, account, fetchUserPools, activeTab])
 
+  // Only fetch all pools when tab changes to all-pools and provider is available
   useEffect(() => {
-    if (activeTab === "all-pools") {
+    if (activeTab === "all-pools" && provider) {
       fetchAllPools()
     }
-  }, [activeTab, provider])
+  }, [activeTab, fetchAllPools])
 
   const handleAddLiquidityClick = () => {
     setActiveTab("add")
@@ -350,11 +420,6 @@ function PoolPage() {
   const handleAddLiquidity = async (tokenA, tokenB, amountA, amountB) => {
     await fetchUserPools()
     await fetchAllPools()
-
-    if (isConnected && provider && account) {
-      await refreshBalance()
-    }
-
     setActiveTab("positions")
   }
 
@@ -372,7 +437,7 @@ function PoolPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-4xl font-bold mb-8 text-center">Liquidity Pools</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center">{t.pool.title}</h1>
       <Card className="bg-card/50 backdrop-blur-sm border-2 border-primary/10">
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -381,31 +446,31 @@ function PoolPage() {
                 value="positions"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                My Positions
+                {t.pool.yourLiquidityPositions}
               </TabsTrigger>
               <TabsTrigger
                 value="all-pools"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                All Pools
+                {t.pool.allPools}
               </TabsTrigger>
               <TabsTrigger
                 value="add"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Add Liquidity
+                {t.pool.addLiquidity}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="positions" className="space-y-4">
               {!isConnected ? (
                 <div className="text-center py-8">
-                  <p className="text-lg mb-4">Connect your wallet to view your liquidity positions</p>
+                  <p className="text-lg mb-4">{t.pool.connectWalletToView}</p>
                   <Button
                     onClick={() => {} /* Trigger wallet connect */}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    Connect Wallet
+                    {t.common.connectWallet}
                   </Button>
                 </div>
               ) : isLoading ? (
@@ -414,12 +479,12 @@ function PoolPage() {
                 </div>
               ) : userPools.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-lg mb-4">You don't have any liquidity positions</p>
+                  <p className="text-lg mb-4">{t.pool.noLiquidityPositions}</p>
                   <Button
                     onClick={handleAddLiquidityClick}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    Add Liquidity
+                    {t.pool.addLiquidity}
                   </Button>
                 </div>
               ) : (
@@ -435,7 +500,7 @@ function PoolPage() {
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search pools by token name or symbol..."
+                  placeholder={t.pool.searchPools}
                   className="pl-10 bg-background/50 backdrop-blur-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -448,7 +513,7 @@ function PoolPage() {
                 </div>
               ) : filteredAllPools.length === 0 ? (
                 <div className="text-center py-8">
-                  {searchTerm ? <p>No pools found matching your search</p> : <p>No liquidity pools found</p>}
+                  {searchTerm ? <p>{t.pool.poolNotFound}</p> : <p>{t.pool.noLiquidityFound}</p>}
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -466,13 +531,13 @@ function PoolPage() {
                     value="add"
                     className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
-                    Add
+                    {t.pool.add}
                   </TabsTrigger>
                   <TabsTrigger
                     value="remove"
                     className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
-                    Remove
+                    {t.pool.remove}
                   </TabsTrigger>
                 </TabsList>
 
@@ -488,10 +553,6 @@ function PoolPage() {
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Chiliz Chain badge */}
     </div>
   )
 }
-
-export default PoolPage

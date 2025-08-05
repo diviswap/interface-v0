@@ -62,7 +62,9 @@ export function RemoveLiquidityConfirmationDialog({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">You received</p>
-                <p className="text-xl font-bold">{formatCurrency(Number(amount0))}</p>
+                <p className="text-xl font-bold">
+                  {amount0 && !isNaN(Number(amount0)) ? formatCurrency(Number(amount0)) : "0"}
+                </p>
                 <p className="text-sm font-medium text-primary">{token0?.symbol}</p>
               </div>
 
@@ -89,7 +91,9 @@ export function RemoveLiquidityConfirmationDialog({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">You received</p>
-                <p className="text-xl font-bold">{formatCurrency(Number(amount1))}</p>
+                <p className="text-xl font-bold">
+                  {amount1 && !isNaN(Number(amount1)) ? formatCurrency(Number(amount1)) : "0"}
+                </p>
                 <p className="text-sm font-medium text-primary">{token1?.symbol}</p>
               </div>
             </div>
@@ -98,7 +102,9 @@ export function RemoveLiquidityConfirmationDialog({
               <h3 className="font-medium text-center mb-3 text-base">Transaction Details</h3>
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">LP Tokens Burned</span>
-                <span className="font-medium text-primary">{formatCurrency(Number(lpAmount))}</span>
+                <span className="font-medium text-primary">
+                  {lpAmount && !isNaN(Number(lpAmount)) ? formatCurrency(Number(lpAmount)) : "0"}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">Network</span>
@@ -121,7 +127,7 @@ export function RemoveLiquidityConfirmationDialog({
             <Button
               variant="outline"
               asChild
-              className="w-full rounded-lg border-primary/20 hover:bg-primary/5 transition-all duration-200"
+              className="w-full rounded-lg border-primary/20 hover:bg-primary/5 transition-all duration-200 bg-transparent"
             >
               <a
                 href={explorerUrl}

@@ -10,10 +10,11 @@ import {
 } from "@/lib/constants"
 
 // Función para obtener el contrato del router de DiviSwap
-export function getRouterContract(signer: ethers.Signer) {
-  console.log("Usando DiviSwap Router en:", ROUTER_ADDRESS)
+export function getRouterContract(signer: ethers.Signer, routerAddress?: string) {
+  const contractAddress = routerAddress || ROUTER_ADDRESS
+  console.log("Usando DiviSwap Router en:", contractAddress)
   return new ethers.Contract(
-    ROUTER_ADDRESS,
+    contractAddress,
     [
       // Factory functions
       "function factory() external view returns (address)",
@@ -191,8 +192,8 @@ export async function swapExactTokensForTokens(
     console.log(`Swapping ${amountIn} tokens con ruta:`, path)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -225,8 +226,8 @@ export async function swapExactETHForTokens(
     console.log(`Swapping ${amountIn} ETH por tokens con ruta:`, path)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -260,8 +261,8 @@ export async function swapExactTokensForETH(
     console.log(`Swapping ${amountIn} tokens por ETH con ruta:`, path)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -306,8 +307,8 @@ export async function addLiquidity(
     const router = getRouterContract(signer)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -363,8 +364,8 @@ export async function addLiquidityETH(
     const router = getRouterContract(signer)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -411,8 +412,8 @@ export async function removeLiquidity(
     const router = getRouterContract(signer)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
@@ -456,8 +457,8 @@ export async function removeLiquidityETH(
     const router = getRouterContract(signer)
 
     // Obtener el precio del gas actual
-    const feeData = await signer.provider.getFeeData()
-    const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+    const feeData = await signer.provider?.getFeeData()
+    const gasPrice = feeData?.gasPrice || ethers.parseUnits("5", "gwei")
 
     console.log("Usando precio de gas:", gasPrice.toString())
 

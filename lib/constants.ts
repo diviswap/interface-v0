@@ -7,6 +7,9 @@ export const CHILIZ_CHAIN_ID = 88888 // Replace with the actual Chiliz Chain ID
 export const FACTORY_ADDRESS = "0xBDd9c322Ecf401E09C9D2Dca3be46a7E45d48BB1" // DiviSwap Factory
 export const ROUTER_ADDRESS = "0xC4E14363A01B7725532e099a67DbD17617FB7485" // DiviSwap Router
 
+// Adding competition router address
+export const COMPETITION_ROUTER_ADDRESS = "0x2DfB3288EbFFDa80dEc4394568E20d7408156B89" // Competition Router with PEPPER rewards
+
 // Kayen Router and Factory Addresses
 export const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F"
 export const KAYEN_FACTORY_ADDRESS = "0x7Bc2Ff3a7e4a9B2B75E1F9d2e5B0F0E9E4D3F8a9"
@@ -14,6 +17,9 @@ export const KAYEN_FACTORY_ADDRESS = "0x7Bc2Ff3a7e4a9B2B75E1F9d2e5B0F0E9E4D3F8a9
 export const WCHZ_ADDRESS = "0x677F7e16C7Dd57be1D4C8aD1244883214953DC47"
 // Add this line to fix the error - WETH_ADDRESS is an alias for WCHZ_ADDRESS in Chiliz Chain
 export const WETH_ADDRESS = WCHZ_ADDRESS
+
+// Adding PEPPER token address for competition
+export const PEPPER_TOKEN_ADDRESS = "0x60f397acbcfb8f4e3234c659a3e10867e6fa6b67"
 
 // Token List
 export const TOKEN_LIST = [
@@ -191,186 +197,6 @@ export const TOKEN_LIST = [
     decimals: 0,
     logoURI:
       "https://raw.githubusercontent.com/kewlexchange/assets/d490f4ee4a9273906fb2f3f9a87a7fe24f29dea6/chiliz/tokens/0x454038003a93cf44766af352f74bad6b745616d0/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xD1723Eb9e7C6eE7c7e2d421B2758dc0f2166eDDc",
-    name: "Flamengo Fan Token",
-    symbol: "MENGO",
-    decimals: 0,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/d490f4ee4a9273906fb2f3f9a87a7fe24f29dea6/chiliz/tokens/0xd1723eb9e7c6ee7c7e2d421b2758dc0f2166eddc/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x1d4343d35f0E0e14C14115876D01dEAa4792550b",
-    name: "Arsenal Fan Token",
-    symbol: "AFC",
-    decimals: 0,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/d490f4ee4a9273906fb2f3f9a87a7fe24f29dea6/chiliz/tokens/0x1d4343d35f0e0e14c14115876d01deaa4792550b/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x5667DDD9764d1873D7a1bc15bc091a8B8a88EF1d",
-    name: "Wrapped Levante",
-    symbol: "WLEV",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x69d65e72266b15c2b2abcd69561399d9bd1843ef/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x72e24AaDEE54E65152C14246D2C62C1D42804764",
-    name: "Wrapped Samsunspor",
-    symbol: "WSAM",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xfc21c38f4802ab29aed8cc7367542a0955cfa9d7/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x58386A2d1c45D4c5349468892f5f73CA3E53EA22",
-    name: "Wrapped Legia Warsaw",
-    symbol: "WLEG",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x3ce3946a68eb044c59afe77dfdfdc71f19eb4328/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xb1d0fADa44D28d31844241460d90C1775706126C",
-    name: "Wrapped Millonarios",
-    symbol: "WMFC",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xdeb5a271a67652a84decb6278d70a6d6a18d7c3b/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xAb445A85384287E5ea1265d3E393180d4b7aeA04",
-    name: "Wrapped Endpoint CeX",
-    symbol: "WENDCEX",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x3f521d391e2ad0093d3bfabb2516f1c57d73b4d1/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xf0f458B1E8Cd27d585De1baB5484B05C4d512a0E",
-    name: "Wrapped Fortuna Sittard",
-    symbol: "WFOR",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x4b56f121f769bbdee3faba6e8b9163e7cffdd59a/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x2bA57f4b99e9D2401381B2D2a1f60760CE3f1E82",
-    name: "Wrapped Gaziantep FK",
-    symbol: "WGFK",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x2a5dbf10a9eb8d948aef256fde8e62f811624c4f/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x9EccD05BBA630cba3E6E119f9243AA649F443b19",
-    name: "Wrapped FIGC",
-    symbol: "WITA",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x7483263ca24bfcff716a21f4a9bbf2610bdd9ec9/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x9b24b3D55737BC28fdb21171ea5fD9eE50B136e6",
-    name: "Wrapped Napoli",
-    symbol: "WNAP",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xbe7f1ebb1fd6246844e093b04991ae0e66d12c77/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x1A21a5C735a48FdE12637D85501205A85FA9aB37",
-    name: "Wrapped Universidad de Chile",
-    symbol: "WUCH",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xa082ec45af038100d4989636a4a5e52fd7e5c636/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x7CB4FFbf64CD58fE6dC57ED8011b65b73691F0AD",
-    name: "Wrapped Racing",
-    symbol: "WRACING",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x06ed14a885d0710118fc20d51efdc151a48005b3/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x6c5e381aF6E3B237F8471A7e1448A4CdF82d3447",
-    name: "Wrapped Team Heretics",
-    symbol: "WTH",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x06b4213774dd069cf603ad11770b52f1e98160a7/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x081232E5fee74ACa4C40bCe224C64e014A6AC245",
-    name: "Wrapped Crystal Palace",
-    symbol: "WCPFC",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xa70bd29bef2936765fe33b0f4b0cf8e947d75581/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x82741b8B13e95eBA9b60dDb8b368F9b793E92f3a",
-    name: "Wrapped Davis Cup",
-    symbol: "WDAVIS",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xf50b3db1d498b69b0dc8ccc0b03643009a6bda78/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xb71597e18D9933b38a56817Ed74C64618232e325",
-    name: "Wrapped Sevilla FC",
-    symbol: "WSEVILLA",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x60a5e1f5f0071c5d870bb0a80b411bde908ad51e/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x39C0E77Cb84a893166cC0E943b8e22b7F56Dc9f5",
-    name: "Wrapped Club Santos Laguna",
-    symbol: "WSAN",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x44941a2d2049be0acb00baf0a5dee8931c33712e/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0xE8C45FBbFdC1bA65A05D9Eb9C0ffF71900492802",
-    name: "Wrapped Hashtag United F.C.",
-    symbol: "WHASHTAG",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0x7be4aebc9900d2c1b628530ffc59416a98420b15/logo.svg",
-  },
-  {
-    chainId: 88888,
-    address: "0x22a82491C4bA35E6910213811ddE4F8702aE0709",
-    name: "Wrapped PERSIB",
-    symbol: "WPERSIB",
-    decimals: 18,
-    logoURI:
-      "https://raw.githubusercontent.com/kewlexchange/assets/main/chiliz/tokens/0xc34bfba5db50152ef3312348a814d24f85748d64/logo.svg",
   },
   {
     chainId: 88888,

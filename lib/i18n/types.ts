@@ -113,6 +113,10 @@ export interface TranslationKeys {
     transactionWillRevert: string
     poweredByChiliz: string
     builtOnChiliz: string
+    competitionBadge: {
+      title: string
+      description: string
+    }
     errors: {
       pairDoesNotExist: string
       noRouteFound: string

@@ -55,6 +55,9 @@ function LaunchpadPage() {
   const [isPresaleEnded, setIsPresaleEnded] = useState(false)
   const [activeTab, setActiveTab] = useState("info")
 
+  const PROGRESS_START = 30000000 // 30 million tokens
+  const PROGRESS_TOTAL = 50000000 // 50 million tokens
+
   useEffect(() => {
     const initContract = async () => {
       // Usando publicClient de Wagmi para operaciones de solo lectura
@@ -115,9 +118,9 @@ function LaunchpadPage() {
     fetchUserInfo()
   }, [presaleContract, account])
 
-  // Calculate progress percentage
-  const progressPercentage =
-    presaleStats.totalTokens > 0 ? (presaleStats.soldTokens / presaleStats.totalTokens) * 100 : 0
+  // Calculate progress percentage with 30M as starting point and 50M as total
+  const currentTokens = PROGRESS_START + presaleStats.soldTokens
+  const progressPercentage = (currentTokens / PROGRESS_TOTAL) * 100
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -145,7 +148,7 @@ function LaunchpadPage() {
               {t.launchpad.progress}: {formatCurrency(progressPercentage, 2)}%
             </span>
             <span>
-              {formatCurrency(presaleStats.soldTokens)} / {formatCurrency(presaleStats.totalTokens)} FTK
+              {formatCurrency(currentTokens)} / {formatCurrency(PROGRESS_TOTAL)} FTK
             </span>
           </div>
           <Progress value={progressPercentage} className="h-3" />

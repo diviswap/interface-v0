@@ -109,6 +109,10 @@ export const es: TranslationKeys = {
     transactionWillRevert: "Tu transacción se revertirá si el precio cambia desfavorablemente más de este porcentaje.",
     poweredByChiliz: "Impulsado por Chiliz Chain",
     builtOnChiliz: "Construido en Chiliz Chain",
+    competitionBadge: {
+      title: "🏆 Únete a la Competición",
+      description: "¡Compra tokens PEPPER para participar y ganar recompensas exclusivas!",
+    },
     errors: {
       pairDoesNotExist:
         "No hay liquidez disponible para este par de tokens. Prueba otro par o agrega liquidez primero.",
@@ -301,7 +305,7 @@ export const es: TranslationKeys = {
     monthly: "Mensual",
     rank: "Rango",
     user: "Usuario",
-    volume: "Volumen (USD)",
+    volume: "Volumen (PEPPER)",
     trades: "Operaciones",
     rewards: "Recompensas ($PEPPER)",
     you: "Tú",
@@ -331,6 +335,42 @@ export const es: TranslationKeys = {
         "Las recompensas se distribuyen diaria, semanal y mensualmente basadas en las clasificaciones.",
       manualClaim: "Los participantes deben reclamar sus recompensas diarias manualmente.",
     },
+    errors: {
+      loadFailed: "Error al cargar los datos de la competición. Inténtalo de nuevo.",
+      claimFailed: "Error al reclamar recompensas. Inténtalo de nuevo.",
+    },
+    messages: {
+      loadingData: "Cargando datos de la competición...",
+      claimingRewards: "Por favor confirma la transacción en tu wallet.",
+      claimSuccess: "Todas las recompensas disponibles han sido reclamadas.",
+      addressCopied: "Dirección del contrato PEPPER copiada al portapapeles.",
+    },
+    dialog: {
+      claimTitle: "Confirmación de Reclamar Recompensas",
+      claimDescription: "Estás a punto de reclamar todas tus recompensas de competición disponibles.",
+      cancel: "Cancelar",
+      confirmClaim: "Confirmar Reclamo",
+      claimAlertDescription:
+        "Esta acción reclamará todas tus recompensas pendientes. Asegúrate de que quieres proceder.",
+    },
+    currentCompetition: "Competición Actual",
+    totalVolume: "Volumen Total (PEPPER)",
+    activeTraders: "Traders Activos",
+    dailyRewards: "Recompensas Diarias (PEPPER)",
+    previousDay: "Día Anterior",
+    connectWalletToViewRewards: "Conecta tu wallet para ver las recompensas",
+    buyPepperDescription: "Compra PEPPER con wCHZ para participar en la competición y ganar recompensas",
+    todaysVolume: "Volumen de Hoy",
+    estimatedReward: "Recompensa Estimada",
+    totalRewards: "Recompensas Totales",
+    claimableDays: "Días Reclamables",
+    termsConditionsList: {
+      rewardsDistribution: "Las recompensas se distribuyen basadas en el volumen de compra de PEPPER",
+      onlySwapsCount: "Solo los intercambios de wCHZ a PEPPER cuentan para la competición",
+      manualClaim: "Las recompensas deben ser reclamadas manualmente después de que termine cada día",
+      competitionRuns: "La competición funciona 24/7 con distribuciones de recompensas diarias",
+    },
+    fairPlayDescription: "Cualquier manipulación o práctica de trading desleal resultará en descalificación",
   },
   common: {
     connectWallet: "Conectar Wallet",

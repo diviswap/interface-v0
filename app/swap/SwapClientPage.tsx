@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
-import { Settings, Info, RefreshCw, AlertTriangle, ArrowUpDown } from "lucide-react"
+import { Settings, RefreshCw, AlertTriangle, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,6 @@ import { formatCurrency } from "@/lib/utils"
 import { findBestRoute, createTrade, getMinimumAmountOut, type TokenInfo } from "@/lib/swap-utils"
 import { SwapConfirmationDialog } from "@/components/swap-confirmation-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TOKEN_LIST } from "@/lib/token-list"
 
@@ -80,6 +79,7 @@ function SwapPage() {
   const [isApprovedForKayen, setIsApprovedForKayen] = useState(false)
   const [isUserTyping, setIsUserTyping] = useState(false)
   const [lastUserInput, setLastUserInput] = useState(Date.now())
+  const [networkFee, setNetworkFee] = useState<string>("0")
 
   const provider = publicClient
     ? new ethers.JsonRpcProvider(publicClient.transport.url, {
@@ -96,6 +96,27 @@ function SwapPage() {
     } catch (error) {
       console.error("Error getting signer:", error)
       return null
+    }
+  }
+
+  const calculateNetworkFee = async () => {
+    if (!provider) return "0"
+
+    try {
+      const feeData = await provider.getFeeData()
+      const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+      const gasLimit = BigInt(500000) // Standard gas limit for swaps
+      const gasCost = gasPrice * gasLimit
+
+      // Convert to CHZ (assuming 18 decimals) and then to USD equivalent
+      const gasCostInCHZ = Number(ethers.formatUnits(gasCost, 18))
+      // Assuming 1 CHZ = $0.10 for estimation (this could be fetched from an API)
+      const gasCostInUSD = gasCostInCHZ * 0.1
+
+      return gasCostInUSD.toFixed(4)
+    } catch (error) {
+      console.error("Error calculating network fee:", error)
+      return "0.0050" // Fallback value
     }
   }
 
@@ -358,6 +379,12 @@ function SwapPage() {
     updateBalances()
   }, [isConnected, provider, account, fromToken, toToken, toast])
 
+  useEffect(() => {
+    if (provider) {
+      calculateNetworkFee().then(setNetworkFee)
+    }
+  }, [provider])
+
   const handleFromAmountChange = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setFromAmount(value)
@@ -486,24 +513,36 @@ function SwapPage() {
         tx = await swapExactTokensForTokens(router, amountIn, minAmountOut, path, account, deadlineTime, signer)
       }
 
-      setSwapDetails({
-        fromToken,
-        toToken,
-        fromAmount,
-        toAmount,
-      })
-
-      setSwapTxHash(tx.hash)
-
+      // Esperar confirmación de la transacción antes de mostrar el modal
       toast({
-        title: "Success",
-        description: `Swap executed successfully!`,
+        title: "Transaction Sent",
+        description: "Waiting for confirmation...",
       })
 
-      setTimeout(() => {
-        setFromAmount("")
-        setToAmount("")
-      }, 1000)
+      // Esperar a que la transacción sea confirmada
+      const receipt = await tx.wait()
+
+      if (receipt.status === 1) {
+        setSwapTxHash(tx.hash)
+
+        // Actualizar swapDetails con los datos reales del swap antes de mostrar el modal
+        setSwapDetails({
+          fromToken: fromToken,
+          toToken: toToken,
+          fromAmount: fromAmount,
+          toAmount: toAmount,
+        })
+
+        // Mostrar el modal de confirmación después del swap exitoso y confirmado
+        setIsConfirmationOpen(true)
+
+        toast({
+          title: "Success",
+          description: "Swap completed successfully!",
+        })
+      } else {
+        throw new Error("Transaction failed")
+      }
     } catch (error) {
       console.error("Error executing swap:", error)
       toast({
@@ -678,6 +717,21 @@ function SwapPage() {
               </div>
             )}
 
+            {/* Made CHZ/PEPPER competition badge clickable and improved text */}
+            {((fromToken?.symbol === "CHZ" && toToken?.symbol === "PEPPER") ||
+              (fromToken?.symbol === "PEPPER" && toToken?.symbol === "CHZ")) && (
+              <button
+                onClick={() => window.open("/competition", "_blank")}
+                className="w-full my-4 p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg hover:from-orange-500/30 hover:to-red-500/30 transition-all duration-200 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-orange-200">{t.swap.competitionBadge.title}</span>
+                </div>
+                <p className="text-xs text-orange-300/80 mt-1 ml-4">{t.swap.competitionBadge.description}</p>
+              </button>
+            )}
+
             {quoteError && (
               <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
                 <div className="flex items-center gap-2">
@@ -694,93 +748,44 @@ function SwapPage() {
               </div>
             )}
 
-            {isMultiHopRoute && currentTrade && (
-              <div className="mt-4 rounded-lg bg-amber-500/10 dark:bg-amber-900/20 p-4 space-y-3 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Price</span>
-                  <div className="flex items-center gap-1">
-                    <span>
-                      1 {fromToken.symbol} = {formatCurrency(exchangeRate)} {toToken.symbol}
-                    </span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
-                            <RefreshCw className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Refresh price</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground">Price Impact</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>The difference between the market price and estimated price due to trade size</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`${
-                      priceImpact > 3
-                        ? "bg-red-500/10 text-red-500 border-red-500/20"
-                        : priceImpact > 1
-                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                          : "bg-green-500/10 text-green-500 border-green-500/20"
-                    }`}
-                  >
-                    {formatCurrency(priceImpact, 2)}%
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground">Slippage Tolerance</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Your transaction will revert if the price changes unfavorably by more than this percentage
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>{slippage}%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Minimum Received</span>
-                  <span>
-                    {formatCurrency(
-                      Number(
-                        ethers.formatUnits(getMinimumAmountOut(currentTrade.outputAmount, slippage), toToken.decimals),
-                      ),
-                    )}{" "}
-                    {toToken.symbol}
+            {(currentTrade || (fromAmount && toAmount && exchangeRate > 0)) && (
+              <div className="space-y-3 p-4 bg-secondary/50 rounded-lg border border-border/50 mt-8">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Price Impact</span>
+                  <span className="text-foreground">
+                    {currentTrade ? `${currentTrade.priceImpact.toFixed(3)}%` : "< 0.01%"}
                   </span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Slippage Tolerance</span>
+                  <span className="text-foreground">{slippage}%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Minimum Received</span>
+                  <span className="text-foreground">
+                    {(() => {
+                      if (currentTrade && currentTrade.outputAmount) {
+                        try {
+                          const minAmount = getMinimumAmountOut(currentTrade.outputAmount, slippage)
+                          return `${formatCurrency(Number(ethers.formatUnits(minAmount, toToken.decimals)), 6)} ${toToken.symbol}`
+                        } catch (error) {
+                          console.error("Error calculating minimum amount:", error)
+                        }
+                      }
 
-                <div className="flex justify-between items-center">
+                      // Fallback calculation when no currentTrade
+                      if (toAmount && !isNaN(Number(toAmount)) && Number(toAmount) > 0) {
+                        const minReceived = Number(toAmount) * (1 - slippage / 100)
+                        return `${formatCurrency(minReceived, 6)} ${toToken.symbol}`
+                      }
+
+                      return "0"
+                    })()}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Network Fee</span>
-                  <span>~0.001 CHZ</span>
+                  <span className="text-foreground">~${networkFee}</span>
                 </div>
               </div>
             )}

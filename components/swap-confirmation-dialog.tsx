@@ -35,6 +35,11 @@ export function SwapConfirmationDialog({
     }
   }, [txHash])
 
+  const fromAmountNum = Number.parseFloat(fromAmount) || 0
+  const toAmountNum = Number.parseFloat(toAmount) || 0
+  const exchangeRate = fromAmountNum > 0 ? toAmountNum / fromAmountNum : 0
+  const protocolFee = fromAmountNum * 0.003
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
       {/* Fixed responsive sizing and overflow handling */}
@@ -70,8 +75,10 @@ export function SwapConfirmationDialog({
                   )}
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground font-medium">You sent</p>
-                <p className="text-lg sm:text-xl font-bold">{formatCurrency(Number(fromAmount))}</p>
-                <p className="text-xs sm:text-sm font-medium text-primary">{fromToken?.symbol}</p>
+                <p className="text-lg sm:text-xl font-bold">
+                  {fromAmountNum > 0 ? formatCurrency(fromAmountNum) : "0"}
+                </p>
+                <p className="text-xs sm:text-sm font-medium text-primary">{fromToken?.symbol || "Unknown"}</p>
               </div>
 
               <div className="px-2 sm:px-4">
@@ -97,8 +104,10 @@ export function SwapConfirmationDialog({
                   )}
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground font-medium">You received</p>
-                <p className="text-lg sm:text-xl font-bold text-primary">{formatCurrency(Number(toAmount))}</p>
-                <p className="text-xs sm:text-sm font-medium text-primary">{toToken?.symbol}</p>
+                <p className="text-lg sm:text-xl font-bold text-primary">
+                  {toAmountNum > 0 ? formatCurrency(toAmountNum) : "0"}
+                </p>
+                <p className="text-xs sm:text-sm font-medium text-primary">{toToken?.symbol || "Unknown"}</p>
               </div>
             </div>
 
@@ -107,13 +116,13 @@ export function SwapConfirmationDialog({
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">Exchange Rate</span>
                 <span className="font-medium text-right">
-                  1 {fromToken?.symbol} = {formatCurrency(Number(toAmount) / Number(fromAmount))} {toToken?.symbol}
+                  {exchangeRate > 0 ? formatCurrency(exchangeRate) : "0"} {toToken?.symbol || "Token"}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">Protocol Fee (0.3%)</span>
                 <span className="font-medium">
-                  {formatCurrency(Number(fromAmount) * 0.003)} {fromToken?.symbol}
+                  {protocolFee > 0 ? formatCurrency(protocolFee) : "0"} {fromToken?.symbol || "Token"}
                 </span>
               </div>
               <div className="flex justify-between py-1">

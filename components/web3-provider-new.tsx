@@ -6,45 +6,30 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { chilizMainnet } from "@/lib/chains"
 import { walletConnect, injected } from "wagmi/connectors"
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+      retryDelay: 1000,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+})
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 
 if (!projectId) {
-  console.error("WalletConnect Project ID is not set")
+  console.warn("WalletConnect Project ID is not set. WalletConnect functionality will be limited.")
 }
 
-const config = createConfig({
-  chains: [chilizMainnet],
-  connectors: [
+const createConnectors = () => {
+  const connectors = [
     injected({
       target: "metaMask",
-    }),
-    walletConnect({
-      projectId: projectId || "",
-      metadata: {
-        name: "DiviSwap",
-        description: "Decentralized Exchange on Chiliz Chain",
-        url: "https://diviswap.io",
-        icons: ["/logo.png"],
-      },
-      showQrModal: true,
-    }),
-    walletConnect({
-      projectId: projectId || "",
-      metadata: {
-        name: "DiviSwap - Socios.com",
-        description: "Connect with Socios.com Wallet",
-        url: "https://diviswap.io",
-        icons: ["/logo.png"],
-      },
-      showQrModal: true,
-      qrModalOptions: {
-        themeMode: "dark",
-        themeVariables: {
-          "--wcm-z-index": "1000",
-        },
-      },
     }),
     injected({
       target: () => ({
@@ -60,9 +45,46 @@ const config = createConfig({
         provider: typeof window !== "undefined" ? (window as any).BinanceChain : undefined,
       }),
     }),
-  ],
+  ]
+
+  if (projectId) {
+    try {
+      connectors.push(
+        walletConnect({
+          projectId,
+          metadata: {
+            name: "DiviSwap",
+            description: "Decentralized Exchange on Chiliz Chain",
+            url: typeof window !== "undefined" ? window.location.origin : "https://diviswap.io",
+            icons: ["/logo.png"],
+          },
+          showQrModal: true,
+          qrModalOptions: {
+            themeMode: "dark",
+            themeVariables: {
+              "--wcm-z-index": "1000",
+            },
+          },
+          disableProviderPing: false,
+        }),
+      )
+    } catch (error) {
+      console.error("Failed to initialize WalletConnect connector:", error)
+    }
+  }
+
+  return connectors
+}
+
+const config = createConfig({
+  chains: [chilizMainnet],
+  connectors: createConnectors(),
   transports: {
     [chilizMainnet.id]: http(),
+  },
+  ssr: false,
+  batch: {
+    multicall: true,
   },
 })
 

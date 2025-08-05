@@ -2,6 +2,9 @@ import { ethers } from "ethers"
 import {
   FACTORY_ADDRESS,
   ROUTER_ADDRESS,
+  COMPETITION_ROUTER_ADDRESS,
+  PEPPER_TOKEN_ADDRESS,
+  WCHZ_ADDRESS,
   FACTORY_ABI,
   ERC20_ABI,
   PAIR_ABI,
@@ -10,35 +13,94 @@ import {
 } from "@/lib/constants"
 
 // Función para obtener el contrato del router de DiviSwap
-export function getRouterContract(signer: ethers.Signer, routerAddress?: string) {
-  const contractAddress = routerAddress || ROUTER_ADDRESS
-  console.log("Usando DiviSwap Router en:", contractAddress)
-  return new ethers.Contract(
-    contractAddress,
-    [
-      // Factory functions
-      "function factory() external view returns (address)",
-      "function WETH() external view returns (address)",
+const COMPETITION_ROUTER_ABI = [
+  // Standard router functions
+  "function factory() external view returns (address)",
+  "function WETH() external view returns (address)",
+  "function addLiquidity(address tokenA, address tokenB, uint amountADesired, uint amountBDesired, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB, uint liquidity)",
+  "function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity)",
+  "function removeLiquidity(address tokenA, address tokenB, uint liquidity, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB)",
+  "function removeLiquidityETH(address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external returns (uint amountToken, uint amountETH)",
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+  "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
+  "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+  "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
+  "function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts)",
 
-      // Add liquidity functions
-      "function addLiquidity(address tokenA, address tokenB, uint amountADesired, uint amountBDesired, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB, uint liquidity)",
-      "function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity)",
+  // Competition-specific functions
+  "function pepperToken() external view returns (address)",
+  "function wchzToken() external view returns (address)",
+  "function currentDayIndex() external view returns (uint256)",
+  "function currentDayStart() external view returns (uint256)",
+  "function competitionDuration() external view returns (uint256)",
+  "function dailyRewardPool() external view returns (uint256)",
+  "function getUserVolume(uint256 dayIndex, address user) external view returns (uint256)",
+  "function getLeaderboard(uint256 dayIndex) external view returns (address[] memory users, uint256[] memory volumes)",
+  "function estimateReward(uint256 dayIndex, address user) external view returns (uint256)",
+  "function claimRewards(uint256[] calldata dayIndices) external",
+  "function claimAllRewards() external",
+  "function lastClaimedDay(address user) external view returns (uint256)",
+  "function claimed(uint256 dayIndex, address user) external view returns (bool)",
+  // Added pendingRewards function to ABI
+  "function pendingRewards(address user) external view returns (uint256)",
+]
 
-      // Remove liquidity functions
-      "function removeLiquidity(address tokenA, address tokenB, uint liquidity, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB)",
-      "function removeLiquidityETH(address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external returns (uint amountToken, uint amountETH)",
+// Function to determine if swap should use competition router
+function shouldUseCompetitionRouter(path: string[]): boolean {
+  if (path.length < 2) return false
 
-      // Swap functions
-      "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
-      "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
-      "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+  const outputToken = path[path.length - 1].toLowerCase()
+  const inputToken = path[0].toLowerCase()
 
-      // Price calculation functions
-      "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
-      "function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts)",
-    ],
-    signer,
+  // Use competition router if buying PEPPER with wCHZ or WETH
+  return (
+    outputToken === PEPPER_TOKEN_ADDRESS.toLowerCase() &&
+    (inputToken === WCHZ_ADDRESS.toLowerCase() || inputToken === WETH_ADDRESS.toLowerCase())
   )
+}
+
+// Modified function to get appropriate router contract
+export function getRouterContract(signer: ethers.Signer, routerAddress?: string, path?: string[]) {
+  let contractAddress = routerAddress || ROUTER_ADDRESS
+  let abi = [
+    // Factory functions
+    "function factory() external view returns (address)",
+    "function WETH() external view returns (address)",
+
+    // Add liquidity functions
+    "function addLiquidity(address tokenA, address tokenB, uint amountADesired, uint amountBDesired, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB, uint liquidity)",
+    "function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity)",
+
+    // Remove liquidity functions
+    "function removeLiquidity(address tokenA, address tokenB, uint liquidity, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB)",
+    "function removeLiquidityETH(address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external returns (uint amountToken, uint amountETH)",
+
+    // Swap functions
+    "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+    "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
+    "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
+
+    // Price calculation functions
+    "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
+    "function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts)",
+  ]
+
+  // Use competition router for PEPPER/wCHZ swaps
+  if (path && shouldUseCompetitionRouter(path)) {
+    contractAddress = COMPETITION_ROUTER_ADDRESS
+    abi = COMPETITION_ROUTER_ABI
+    console.log("Usando Competition Router en:", contractAddress)
+  } else {
+    console.log("Usando DiviSwap Router en:", contractAddress)
+  }
+
+  return new ethers.Contract(contractAddress, abi, signer)
+}
+
+// New function to get competition router specifically
+export function getCompetitionRouterContract(signer: ethers.Signer) {
+  console.log("Usando Competition Router en:", COMPETITION_ROUTER_ADDRESS)
+  return new ethers.Contract(COMPETITION_ROUTER_ADDRESS, COMPETITION_ROUTER_ABI, signer)
 }
 
 export function getFactoryContract(provider: ethers.Provider | ethers.Signer) {
@@ -179,6 +241,7 @@ export async function getAmountsIn(router: ethers.Contract, amountOut: bigint, p
   }
 }
 
+// Modified swap functions to use appropriate router
 export async function swapExactTokensForTokens(
   router: ethers.Contract,
   amountIn: bigint,
@@ -189,7 +252,11 @@ export async function swapExactTokensForTokens(
   signer: ethers.Signer,
 ) {
   try {
+    // Use competition router if swapping to PEPPER
+    const actualRouter = shouldUseCompetitionRouter(path) ? getCompetitionRouterContract(signer) : router
+
     console.log(`Swapping ${amountIn} tokens con ruta:`, path)
+    console.log("Usando router:", shouldUseCompetitionRouter(path) ? "Competition" : "Standard")
 
     // Obtener el precio del gas actual
     const feeData = await signer.provider?.getFeeData()
@@ -197,16 +264,15 @@ export async function swapExactTokensForTokens(
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
-    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, to, deadline, {
+    const tx = await actualRouter.swapExactTokensForTokens(amountIn, amountOutMin, path, to, deadline, {
       gasLimit: 500000,
       gasPrice: gasPrice,
       type: 0, // Explícitamente establecer a tipo de transacción legacy
     })
 
     console.log("Transacción de swap enviada:", tx.hash)
-    const receipt = await tx.wait()
-    console.log("Swap confirmado:", receipt.hash)
-    return receipt
+    // Return transaction object instead of receipt to allow caller to handle wait()
+    return tx
   } catch (error) {
     console.error("Error swapping tokens:", error)
     throw error
@@ -223,7 +289,11 @@ export async function swapExactETHForTokens(
   signer: ethers.Signer,
 ) {
   try {
+    // Use competition router if swapping to PEPPER
+    const actualRouter = shouldUseCompetitionRouter(path) ? getCompetitionRouterContract(signer) : router
+
     console.log(`Swapping ${amountIn} ETH por tokens con ruta:`, path)
+    console.log("Usando router:", shouldUseCompetitionRouter(path) ? "Competition" : "Standard")
 
     // Obtener el precio del gas actual
     const feeData = await signer.provider?.getFeeData()
@@ -231,7 +301,7 @@ export async function swapExactETHForTokens(
 
     console.log("Usando precio de gas:", gasPrice.toString())
 
-    const tx = await router.swapExactETHForTokens(amountOutMin, path, to, deadline, {
+    const tx = await actualRouter.swapExactETHForTokens(amountOutMin, path, to, deadline, {
       value: amountIn,
       gasLimit: 500000,
       gasPrice: gasPrice,
@@ -239,9 +309,8 @@ export async function swapExactETHForTokens(
     })
 
     console.log("Transacción de swap ETH enviada:", tx.hash)
-    const receipt = await tx.wait()
-    console.log("Swap ETH confirmado:", receipt.hash)
-    return receipt
+    // Return transaction object instead of receipt to allow caller to handle wait()
+    return tx
   } catch (error) {
     console.error("Error swapping ETH for tokens:", error)
     throw error
@@ -273,9 +342,8 @@ export async function swapExactTokensForETH(
     })
 
     console.log("Transacción de swap tokens por ETH enviada:", tx.hash)
-    const receipt = await tx.wait()
-    console.log("Swap tokens por ETH confirmado:", receipt.hash)
-    return receipt
+    // Return transaction object instead of receipt to allow caller to handle wait()
+    return tx
   } catch (error) {
     console.error("Error swapping tokens for ETH:", error)
     throw error
@@ -477,6 +545,20 @@ export async function removeLiquidityETH(
     if (error instanceof Error) {
       console.error("Error message:", error.message)
     }
+    throw error
+  }
+}
+
+// New function to get pending rewards for a user
+export async function getPendingRewards(user: string, signer: ethers.Signer) {
+  try {
+    const competitionRouter = getCompetitionRouterContract(signer)
+    console.log("Obteniendo pending rewards para:", user)
+    const pendingRewards = await competitionRouter.pendingRewards(user)
+    console.log("Pending rewards:", pendingRewards.toString())
+    return pendingRewards
+  } catch (error) {
+    console.error("Error getting pending rewards:", error)
     throw error
   }
 }

@@ -381,6 +381,9 @@ export const tr: TranslationKeys = {
     viewOnExplorer: "Explorer'da Görüntüle",
     chooseWallet: "DiviSwap'a bağlanmak için tercih ettiğiniz cüzdanı seçin",
     termsAgreement: "Bir cüzdan bağlayarak DiviSwap'ın Hizmet Şartlarını kabul etmiş olursunuz",
+    installApp: "DiviSwap Uygulamasını Yükle",
+    installIOSInstructions: "Paylaş'a dokunun ve ardından 'Ana Ekrana Ekle'yi seçin",
+    installAndroidInstructions: "Menüye dokunun ve 'Uygulamayı Yükle'yi seçin",
     walletDescriptions: {
       metamask: "MetaMask cüzdanı kullanarak bağlan",
       walletconnect: "Bağlanmak için WalletConnect ile tara",

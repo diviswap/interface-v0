@@ -384,6 +384,9 @@ export const pt: TranslationKeys = {
     viewOnExplorer: "Ver no Explorador",
     chooseWallet: "Escolha sua carteira preferida para conectar ao DiviSwap",
     termsAgreement: "Ao conectar uma carteira, você concorda com os Termos de Serviço do DiviSwap",
+    installApp: "Instalar App DiviSwap",
+    installIOSInstructions: "Toque em Compartilhar e depois 'Adicionar à Tela Inicial'",
+    installAndroidInstructions: "Toque no menu e selecione 'Instalar Aplicativo'",
     walletDescriptions: {
       metamask: "Conectar usando carteira MetaMask",
       walletconnect: "Escanear com WalletConnect para conectar",

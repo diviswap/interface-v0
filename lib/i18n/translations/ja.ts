@@ -253,6 +253,9 @@ export const ja: TranslationKeys = {
     viewOnExplorer: "エクスプローラーで表示",
     chooseWallet: "DiviSwapに接続するお好みのウォレットを選択してください",
     termsAgreement: "ウォレットを接続することで、DiviSwapの利用規約に同意したものとみなされます",
+    installApp: "DiviSwapアプリをインストール",
+    installIOSInstructions: "共有をタップして「ホーム画面に追加」を選択",
+    installAndroidInstructions: "メニューをタップして「アプリをインストール」を選択",
     walletDescriptions: {
       metamask: "MetaMaskウォレットを使用して接続",
       walletconnect: "WalletConnectでスキャンして接続",

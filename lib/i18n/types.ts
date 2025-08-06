@@ -356,6 +356,10 @@ export interface TranslationKeys {
     viewOnExplorer: string
     chooseWallet: string
     termsAgreement: string
+    // Adding PWA installation instruction types
+    installApp?: string
+    installIOSInstructions?: string
+    installAndroidInstructions?: string
     walletDescriptions: {
       metamask: string
       walletconnect: string

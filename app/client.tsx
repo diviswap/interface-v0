@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import { I18nProvider, useTranslation } from "@/lib/i18n/context"
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt"
 
 // Importar Web3Provider y EnhancedNavbar dinámicamente con { ssr: false }
 const Web3Provider = dynamic(
@@ -126,6 +127,7 @@ export default function ClientLayout({
                       </main>
                       <Footer />
                     </div>
+                    <PwaInstallPrompt />
                   </BackgroundWrapper>
                 </Web3Provider>
               </ClientOnly>

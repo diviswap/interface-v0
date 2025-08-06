@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
-import { Settings, RefreshCw, AlertTriangle, ArrowUpDown } from "lucide-react"
+import { Settings, RefreshCw, AlertTriangle, ArrowUpDown } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -721,7 +721,7 @@ function SwapPage() {
             {((fromToken?.symbol === "CHZ" && toToken?.symbol === "PEPPER") ||
               (fromToken?.symbol === "PEPPER" && toToken?.symbol === "CHZ")) && (
               <button
-                onClick={() => window.open("/competition", "_blank")}
+                onClick={() => window.location.href = "/competition"}
                 className="w-full my-4 p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg hover:from-orange-500/30 hover:to-red-500/30 transition-all duration-200 cursor-pointer"
               >
                 <div className="flex items-center gap-2">

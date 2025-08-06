@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAccount, usePublicClient } from "wagmi"
 import { ethers } from "ethers"
-import { RefreshCw, Search } from "lucide-react"
+import { RefreshCw, Search } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -442,22 +442,23 @@ export default function PoolPageClient() {
       <Card className="bg-card/50 backdrop-blur-sm border-2 border-primary/10">
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            {/* Made tabs responsive - vertical stack on mobile, grid on desktop */}
+            <TabsList className="flex flex-col w-full gap-1 h-auto p-1 md:grid md:grid-cols-3 md:h-10 mb-6">
               <TabsTrigger
                 value="positions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.pool.yourLiquidityPositions}
               </TabsTrigger>
               <TabsTrigger
                 value="all-pools"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.pool.allPools}
               </TabsTrigger>
               <TabsTrigger
                 value="add"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.pool.addLiquidity}
               </TabsTrigger>

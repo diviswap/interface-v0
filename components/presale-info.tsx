@@ -41,7 +41,8 @@ export function PresaleInfo() {
               </div>
               <div className="bg-secondary/50 p-3 rounded-lg">
                 <p className="text-sm text-muted-foreground">Presale Period</p>
-                <p className="font-medium">May 1 - July 30, 2025</p>
+                {/* Updated presale end date from July 30 to December 31, 2025 */}
+                <p className="font-medium">May 1 - December 31, 2025</p>
               </div>
               <div className="bg-secondary/50 p-3 rounded-lg">
                 <p className="text-sm text-muted-foreground">Fundraising Goal</p>

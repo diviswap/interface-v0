@@ -15,7 +15,7 @@ import { PresaleStats } from "@/components/presale-stats"
 import { PresaleTimer } from "@/components/presale-timer"
 import { PresaleABI } from "@/lib/presale-abi"
 import Image from "next/image"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from "@/lib/i18n/context"
 // Importando ConnectWallet para soporte de múltiples wallets
 import { ConnectWallet } from "@/components/connect-wallet-new"
@@ -138,7 +138,6 @@ function LaunchpadPage() {
           </div>
           <div>
             <h1 className="text-4xl font-bold">{t.launchpad.title}</h1>
-            <p className="text-muted-foreground">{t.launchpad.subtitle}</p>
           </div>
         </div>
 
@@ -204,22 +203,23 @@ function LaunchpadPage() {
       <Card className="bg-card/50 backdrop-blur-sm border-2 border-primary/10 mb-8">
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            {/* Made tabs responsive - vertical stack on mobile, grid on desktop */}
+            <TabsList className="flex flex-col w-full gap-1 h-auto p-1 md:grid md:grid-cols-3 md:h-10 mb-6">
               <TabsTrigger
                 value="info"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.launchpad.information}
               </TabsTrigger>
               <TabsTrigger
                 value="purchase"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.launchpad.purchaseTokens}
               </TabsTrigger>
               <TabsTrigger
                 value="stats"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {t.launchpad.statistics}
               </TabsTrigger>

@@ -4,7 +4,11 @@
   "description": "Trade cryptocurrencies on the decentralized DiviSwap exchange",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
+  "background_color": "#0a0a0
+
+<AssistantMessageContentPart partEncoded="eyJ0eXBlIjoidGFzay1zdGFydC12MSIsImNyZWF0ZWRBdCI6MTc1NDUwMTM4OTY5OCwiZmluaXNoZWRBdCI6MTc1NDUwMTM4OTY5OCwiaWQiOiJ4WFZMYjZ5aVRLNndWZUlDIiwibGFzdFBhcnRTZW50QXQiOjE3NTQ1MDEzODk2OTgsInBhcnRzIjpbeyJ0eXBlIjoibGF1bmNoLXRhc2tzIn1dfQ==" />
+
+a",
   "theme_color": "#ff6b35",
   "orientation": "portrait-primary",
   "scope": "/",
@@ -12,29 +16,29 @@
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/favicon-16x16.png?v=2",
+      "src": "/favicon-16x16.png?v=3",
       "sizes": "16x16",
       "type": "image/png"
     },
     {
-      "src": "/favicon-32x32.png?v=2",
+      "src": "/favicon-32x32.png?v=3",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "/apple-touch-icon.png?v=2",
+      "src": "/apple-touch-icon.png?v=3",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android-chrome-192x192.png?v=2",
+      "src": "/android-chrome-192x192.png?v=3",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/android-chrome-512x512.png?v=2",
+      "src": "/android-chrome-512x512.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "DiviSwap",
     images: [
       {
-        url: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_CIRCLE_O-jS8k1FEErlvtPQhtkG85QTsKsUkpmu.png",
+        url: "/android-chrome-512x512.png?v=3",
         width: 512,
         height: 512,
         alt: "DiviSwap Logo",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "DiviSwap | DEX on Chiliz Chain",
     description:
       "Trade and provide liquidity on Chiliz Chain. Frictionless trading, earn rewards, guaranteed security.",
-    images: ["https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_CIRCLE_O-jS8k1FEErlvtPQhtkG85QTsKsUkpmu.png"],
+    images: ["/android-chrome-512x512.png?v=3"],
     creator: "@DSwap",
   },
   robots: {
@@ -52,11 +52,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_CIRCLE_O-jS8k1FEErlvtPQhtkG85QTsKsUkpmu.png",
-    shortcut: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_CIRCLE_O-jS8k1FEErlvtPQhtkG85QTsKsUkpmu.png",
-    apple: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/DS_CIRCLE_O-jS8k1FEErlvtPQhtkG85QTsKsUkpmu.png",
+    icon: "/favicon.ico?v=3",
+    shortcut: "/favicon-32x32.png?v=3",
+    apple: "/apple-touch-icon.png?v=3",
   },
-  manifest: "/site.webmanifest",
+  manifest: "/manifest.json",
   themeColor: "#000000",
 }
 

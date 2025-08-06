@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable PWA features
   experimental: {
-    appDir: true,
+    // appDir is now default in Next.js 14+
   },
   eslint: {
     ignoreDuringBuilds: true,

@@ -1,6 +1,14 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import ClientLayout from "./client"
+
+export const viewport: Viewport = {
+  themeColor: "#191919",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export const metadata: Metadata = {
   title: "DiviSwap | Chiliz Chain DEX",
@@ -17,23 +25,39 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
+        url: "/favicon-32x32.png",
         type: "image/png",
         sizes: "32x32",
       },
       {
+        url: "/favicon-16x16.png",
         type: "image/png", 
         sizes: "16x16",
       },
     ],
     shortcut: [
       {
-        type: "image/png",
+        url: "/favicon.ico",
+        type: "image/x-icon",
       },
     ],
     apple: [
       {
+        url: "/apple-touch-icon.png",
         type: "image/png",
         sizes: "180x180",
+      },
+    ],
+    other: [
+      {
+        url: "/android-chrome-192x192.png",
+        type: "image/png",
+        sizes: "192x192",
+      },
+      {
+        url: "/android-chrome-512x512.png",
+        type: "image/png",
+        sizes: "512x512",
       },
     ],
   },

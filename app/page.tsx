@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "DiviSwap",
     images: [
       {
-        url: "/android-chrome-512x512.png?v=3",
+        url: "/android-chrome-512x512.png?v=4",
         width: 512,
         height: 512,
         alt: "DiviSwap Logo",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "DiviSwap | DEX on Chiliz Chain",
     description:
       "Trade and provide liquidity on Chiliz Chain. Frictionless trading, earn rewards, guaranteed security.",
-    images: ["/android-chrome-512x512.png?v=3"],
+    images: ["/android-chrome-512x512.png?v=4"],
     creator: "@DSwap",
   },
   robots: {
@@ -52,9 +52,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico?v=3",
-    shortcut: "/favicon-32x32.png?v=3",
-    apple: "/apple-touch-icon.png?v=3",
+    icon: "/favicon.ico?v=4",
+    shortcut: "/favicon-32x32.png?v=4",
+    apple: "/apple-touch-icon.png?v=4",
   },
   manifest: "/manifest.json",
   themeColor: "#000000",

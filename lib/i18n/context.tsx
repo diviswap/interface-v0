@@ -18,16 +18,57 @@ interface I18nProviderProps {
   children: ReactNode
 }
 
+// Added function to detect browser language and map to supported languages
+function detectBrowserLanguage(): Language {
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE
+  
+  // Get browser languages in order of preference
+  const browserLanguages = navigator.languages || [navigator.language]
+  
+  // Map of browser locales to supported languages
+  const languageMap: Record<string, Language> = {
+    'en': 'en',
+    'es': 'es', 
+    'pt': 'pt',
+    'it': 'it',
+    'fr': 'fr',
+    'tr': 'tr',
+    'ja': 'ja'
+  }
+  
+  // Check each browser language preference
+  for (const browserLang of browserLanguages) {
+    // Extract language code (e.g., 'en' from 'en-US')
+    const langCode = browserLang.split('-')[0].toLowerCase()
+    
+    // Return if we support this language
+    if (languageMap[langCode]) {
+      return languageMap[langCode]
+    }
+  }
+  
+  return DEFAULT_LANGUAGE
+}
+
 export function I18nProvider({ children }: I18nProviderProps) {
   const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load saved language from localStorage on mount
+  // Enhanced language loading to detect browser language if no saved preference
   useEffect(() => {
     const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language
+    
     if (savedLanguage && translations[savedLanguage]) {
+      // Use saved language preference
       setLanguageState(savedLanguage)
+    } else {
+      // Detect and use browser language
+      const detectedLanguage = detectBrowserLanguage()
+      setLanguageState(detectedLanguage)
+      // Save the detected language as user preference
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, detectedLanguage)
     }
+    
     setIsLoading(false)
   }, [])
 

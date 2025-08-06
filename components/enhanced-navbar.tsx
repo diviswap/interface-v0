@@ -56,11 +56,19 @@ export function EnhancedNavbar() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      
+      // Check if click is inside a dropdown menu content (Radix UI portals)
+      const isInsideDropdown = target.closest('[data-radix-dropdown-menu-content]') ||
+                              target.closest('[data-radix-popper-content-wrapper]') ||
+                              target.closest('[role="menu"]')
+      
       if (isMenuOpen && 
           mobileMenuRef.current && 
           !mobileMenuRef.current.contains(event.target as Node) &&
           menuToggleRef.current && 
-          !menuToggleRef.current.contains(event.target as Node)) {
+          !menuToggleRef.current.contains(event.target as Node) &&
+          !isInsideDropdown) {
         setIsMenuOpen(false)
       }
     }
@@ -164,7 +172,7 @@ export function EnhancedNavbar() {
       {isMenuOpen && (
         <div 
           ref={mobileMenuRef}
-          className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg border-b-2 border-b-primary"
+          className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg"
         >
           <div className="container py-3 px-3">
             <nav className="flex flex-col gap-1">
@@ -201,7 +209,7 @@ export function EnhancedNavbar() {
                   </Link>
                 )
               })}
-              <div className="border-t border-border/10 pt-3 mt-2">
+              <div className="border-t border-primary/20 pt-3 mt-2">
                 <div className="p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-muted-foreground">Language:</span>
@@ -211,6 +219,7 @@ export function EnhancedNavbar() {
               </div>
             </nav>
           </div>
+          <div className="border-b-2 border-b-primary"></div>
         </div>
       )}
     </header>

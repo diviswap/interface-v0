@@ -44,6 +44,8 @@
   body {
     @apply bg-background text-foreground;
     height: 100%;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     /* Ocultar la barra de scroll pero mantener la funcionalidad */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
@@ -75,6 +77,14 @@
 #__next,
 body > div:first-child {
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
 }
 
 /* Estilos personalizados para scrollbars - ahora ocultos por defecto */

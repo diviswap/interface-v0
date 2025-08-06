@@ -25,37 +25,37 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/favicon-32x32.png",
+        url: "/favicon-32x32.png?v=2",
         type: "image/png",
         sizes: "32x32",
       },
       {
-        url: "/favicon-16x16.png",
+        url: "/favicon-16x16.png?v=2",
         type: "image/png", 
         sizes: "16x16",
       },
     ],
     shortcut: [
       {
-        url: "/favicon.ico",
+        url: "/favicon.ico?v=2",
         type: "image/x-icon",
       },
     ],
     apple: [
       {
-        url: "/apple-touch-icon.png",
+        url: "/apple-touch-icon.png?v=2",
         type: "image/png",
         sizes: "180x180",
       },
     ],
     other: [
       {
-        url: "/android-chrome-192x192.png",
+        url: "/android-chrome-192x192.png?v=2",
         type: "image/png",
         sizes: "192x192",
       },
       {
-        url: "/android-chrome-512x512.png",
+        url: "/android-chrome-512x512.png?v=2",
         type: "image/png",
         sizes: "512x512",
       },

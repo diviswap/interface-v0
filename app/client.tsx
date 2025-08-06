@@ -1,11 +1,11 @@
 "use client"
 
 import React from "react"
-import { Inter } from "next/font/google"
+import { Inter } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { BackgroundWrapper } from "@/components/background-wrapper"
-import { Github, MessageCircle } from "lucide-react"
+import { Github, MessageCircle } from 'lucide-react'
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
@@ -94,6 +94,19 @@ export default function ClientLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Added service worker registration effect
+  React.useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered: ', registration);
+        })
+        .catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    }
+  }, []);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

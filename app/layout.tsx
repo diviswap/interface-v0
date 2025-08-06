@@ -5,6 +5,14 @@ import ClientLayout from "./client"
 export const metadata: Metadata = {
   title: "DiviSwap | Chiliz Chain DEX",
   description: "Trade and provide liquidity on Chiliz Chain",
+  manifest: "/manifest.json",
+  themeColor: "#ff6b35",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DiviSwap"
+  },
   icons: {
     icon: [
       {

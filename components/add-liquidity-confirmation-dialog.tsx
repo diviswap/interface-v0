@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle, DialogFooter, DialogHeader } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, ExternalLink, Plus } from "lucide-react"
+import { CheckCircle2, ExternalLink, Plus } from 'lucide-react'
 import Image from "next/image"
 import { formatCurrency } from "@/lib/utils"
 
@@ -55,7 +55,7 @@ export function AddLiquidityConfirmationDialog({
         <div className="p-6 space-y-6">
           <div className="flex flex-col items-center space-y-6">
             <div className="flex items-center justify-center w-full bg-card/50 rounded-xl p-5 border border-border/50 shadow-sm">
-              <div className="text-center px-4">
+              <div className="text-center px-2 flex-1 min-w-0">
                 <div className="mb-2 flex items-center justify-center">
                   {token0?.logoURI ? (
                     <Image
@@ -72,17 +72,20 @@ export function AddLiquidityConfirmationDialog({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">You added</p>
-                <p className="text-xl font-bold">{formatCurrency(Number(amount0))}</p>
+                {/* Made amount text responsive and added proper overflow handling */}
+                <p className="text-lg sm:text-xl font-bold break-all leading-tight px-1">
+                  {formatCurrency(amount0)}
+                </p>
                 <p className="text-sm font-medium text-primary">{token0?.symbol}</p>
               </div>
 
-              <div className="px-4">
+              <div className="px-2 flex-shrink-0">
                 <div className="bg-primary/10 rounded-full p-2 border border-primary/20">
                   <Plus className="h-5 w-5 text-primary" />
                 </div>
               </div>
 
-              <div className="text-center px-4">
+              <div className="text-center px-2 flex-1 min-w-0">
                 <div className="mb-2 flex items-center justify-center">
                   {token1?.logoURI ? (
                     <Image
@@ -99,7 +102,10 @@ export function AddLiquidityConfirmationDialog({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">You added</p>
-                <p className="text-xl font-bold">{formatCurrency(Number(amount1))}</p>
+                {/* Made amount text responsive and added proper overflow handling */}
+                <p className="text-lg sm:text-xl font-bold break-all leading-tight px-1">
+                  {formatCurrency(amount1)}
+                </p>
                 <p className="text-sm font-medium text-primary">{token1?.symbol}</p>
               </div>
             </div>

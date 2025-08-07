@@ -204,6 +204,8 @@ export default function PoolPageClient() {
               token0,
               token1,
               liquidityTokens: liquidityTokensFormatted,
+              // Adding raw balance for accurate pool share calculation
+              liquidityTokensRaw: balance,
               token0Amount:
                 token0Amount > 0 ? ethers.formatUnits(BigInt(Math.floor(token0Amount)), token0.decimals) : "0",
               token1Amount:

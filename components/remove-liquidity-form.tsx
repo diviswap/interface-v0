@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ethers } from "ethers"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,7 @@ interface RemoveLiquidityFormProps {
   initialPairAddress?: string | null
 }
 
-export function RemoveLiquidityForm({ pools, initialPairAddress = null }: RemoveLiquidityFormProps) {
+export function RemoveLiquidityForm({ pools, initialPairAddress }: RemoveLiquidityFormProps) {
   const { address: account, isConnected } = useAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
@@ -63,6 +63,11 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     expectedToken1: "",
   })
 
+  // Added refs to prevent excessive loading and cache results
+  const loadingRef = useRef(false)
+  const lastAmountRef = useRef("")
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
+
   // Set initial pool if provided
   useEffect(() => {
     if (initialPairAddress && pools.length > 0) {
@@ -82,7 +87,11 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
         return
       }
 
-      setIsLoading(true)
+      // Only show loading on initial load or pool change
+      if (!loadingRef.current) {
+        setIsLoading(true)
+        loadingRef.current = true
+      }
       setError(null)
 
       try {
@@ -112,6 +121,7 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
         setMaxLiquidity("0")
       } finally {
         setIsLoading(false)
+        loadingRef.current = false
       }
     }
 
@@ -119,7 +129,7 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
     // Removed 'amount' from dependencies to prevent infinite re-renders
   }, [isConnected, provider, selectedPool, account])
 
-  // Added separate useEffect to check approval when amount changes
+  // Added debounced approval check to prevent constant loading
   useEffect(() => {
     const checkAmountApproval = async () => {
       if (!amount || !selectedPool || !account || !provider) {
@@ -136,12 +146,26 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
       }
     }
 
-    if (amount && Number(amount) > 0) {
-      checkAmountApproval()
+    // Clear existing timeout and debounce the approval check
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    if (amount && Number(amount) > 0 && amount !== lastAmountRef.current) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        checkAmountApproval()
+        lastAmountRef.current = amount
+      }, 500) // 500ms debounce
+    }
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
     }
   }, [amount, selectedPool, account, provider])
 
-  // Calculate expected tokens when removing liquidity
+  // Added debounced expected tokens calculation
   useEffect(() => {
     const calculateExpectedTokens = async () => {
       if (!selectedPool || !amount || !provider || Number(amount) === 0) {
@@ -179,7 +203,22 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
       }
     }
 
-    calculateExpectedTokens()
+    // Debounce the expected tokens calculation
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    if (selectedPool && amount && Number(amount) > 0) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        calculateExpectedTokens()
+      }, 300) // 300ms debounce for faster feedback
+    }
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
   }, [selectedPool, amount, provider])
 
   const handleAmountChange = (value: string) => {
@@ -442,6 +481,27 @@ export function RemoveLiquidityForm({ pools, initialPairAddress = null }: Remove
               </span>
             )}
           </div>
+          
+          {/* Added percentage buttons for quick selection */}
+          <div className="flex gap-2 mb-2">
+            {[25, 50, 75, 100].map((percentage) => (
+              <Button
+                key={percentage}
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => {
+                  if (maxLiquidity) {
+                    const percentageAmount = (Number(maxLiquidity) * percentage) / 100;
+                    handleAmountChange(percentageAmount.toString());
+                  }
+                }}
+              >
+                {percentage}%
+              </Button>
+            ))}
+          </div>
+          
           <div className="flex items-center space-x-2">
             <div className="relative flex-1">
               <Input

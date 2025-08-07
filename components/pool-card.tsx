@@ -56,7 +56,27 @@ function PoolCard({ pool }: PoolCardProps) {
             <div>
               <p className="text-sm text-muted-foreground">Pool share</p>
               <p className="font-medium">
-                {((Number(pool.liquidityTokens) / Number(pool.totalSupply)) * 100).toFixed(2)}%
+                {(() => {
+                  // Using raw BigInt values for accurate calculation
+                  const liquidityTokensRaw = pool.liquidityTokensRaw || BigInt(0);
+                  const totalSupply = pool.totalSupply || BigInt(0);
+                  
+                  // Handle edge cases
+                  if (liquidityTokensRaw === BigInt(0) || totalSupply === BigInt(0)) {
+                    return "0.00%";
+                  }
+                  
+                  // Calculate percentage using BigInt precision
+                  const percentage = (Number(liquidityTokensRaw) / Number(totalSupply)) * 100;
+                  
+                  // For very small percentages, show more decimal places
+                  if (percentage < 0.01 && percentage > 0) {
+                    return `${percentage.toFixed(6)}%`;
+                  }
+                  
+                  // For normal percentages, show 2 decimal places
+                  return `${percentage.toFixed(2)}%`;
+                })()}
               </p>
             </div>
           </div>

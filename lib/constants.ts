@@ -8,7 +8,7 @@ export const FACTORY_ADDRESS = "0xBDd9c322Ecf401E09C9D2Dca3be46a7E45d48BB1" // D
 export const ROUTER_ADDRESS = "0xC4E14363A01B7725532e099a67DbD17617FB7485" // DiviSwap Router
 
 // Adding competition router address
-export const COMPETITION_ROUTER_ADDRESS = "0x2DfB3288EbFFDa80dEc4394568E20d7408156B89" // Competition Router with PEPPER rewards
+export const COMPETITION_ROUTER_ADDRESS = "0x42012B9b8b1d6A9A59B6c84cEcda3fA245F939a7" // Updated competition router address
 
 // Kayen Router and Factory Addresses
 export const KAYEN_ROUTER_ADDRESS = "0x1918EbB39492C8b98865c5E53219c3f1AE79e76F"

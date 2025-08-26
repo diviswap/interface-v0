@@ -5,7 +5,18 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAccount, useBalance } from "wagmi"
-import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal, Rocket } from 'lucide-react'
+import {
+  Home,
+  ArrowLeftRight,
+  Droplets,
+  LineChart,
+  BookOpen,
+  Menu,
+  X,
+  MoreHorizontal,
+  Rocket,
+  Trophy,
+} from "lucide-react"
 import { ConnectWallet } from "@/components/connect-wallet-new"
 import { NavBar } from "@/components/ui/tubelight-navbar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -20,7 +31,7 @@ export function EnhancedNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [windowWidth, setWindowWidth] = useState(0)
   const { t } = useTranslation()
-  
+
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const menuToggleRef = useRef<HTMLButtonElement>(null)
 
@@ -28,6 +39,7 @@ export function EnhancedNavbar() {
     { name: t.nav.home, url: "/", icon: Home },
     { name: t.nav.swap, url: "/swap", icon: ArrowLeftRight },
     { name: t.nav.pool, url: "/pool", icon: Droplets },
+    { name: t.nav.competition, url: "/competition", icon: Trophy },
     { name: t.nav.launchpad, url: "/launchpad", icon: Rocket },
     { name: t.nav.charts, url: "/charts", icon: LineChart },
     { name: t.nav.academy, url: "https://academy.diviswap.io", icon: BookOpen, external: true },
@@ -57,18 +69,21 @@ export function EnhancedNavbar() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
-      
+
       // Check if click is inside a dropdown menu content (Radix UI portals)
-      const isInsideDropdown = target.closest('[data-radix-dropdown-menu-content]') ||
-                              target.closest('[data-radix-popper-content-wrapper]') ||
-                              target.closest('[role="menu"]')
-      
-      if (isMenuOpen && 
-          mobileMenuRef.current && 
-          !mobileMenuRef.current.contains(event.target as Node) &&
-          menuToggleRef.current && 
-          !menuToggleRef.current.contains(event.target as Node) &&
-          !isInsideDropdown) {
+      const isInsideDropdown =
+        target.closest("[data-radix-dropdown-menu-content]") ||
+        target.closest("[data-radix-popper-content-wrapper]") ||
+        target.closest('[role="menu"]')
+
+      if (
+        isMenuOpen &&
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node) &&
+        menuToggleRef.current &&
+        !menuToggleRef.current.contains(event.target as Node) &&
+        !isInsideDropdown
+      ) {
         setIsMenuOpen(false)
       }
     }
@@ -157,10 +172,10 @@ export function EnhancedNavbar() {
           </div>
           <ConnectWallet />
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden h-9 w-9" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-9 w-9"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             ref={menuToggleRef}
           >
@@ -170,10 +185,7 @@ export function EnhancedNavbar() {
       </div>
 
       {isMenuOpen && (
-        <div 
-          ref={mobileMenuRef}
-          className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg"
-        >
+        <div ref={mobileMenuRef} className="md:hidden border-t border-border/10 bg-background/95 backdrop-blur-lg">
           <div className="container py-3 px-3">
             <nav className="flex flex-col gap-1">
               {navItems.map((item) => {

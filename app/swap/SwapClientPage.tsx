@@ -1,7 +1,7 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { ethers } from "ethers"
-import { Settings, RefreshCw, AlertTriangle, ArrowUpDown } from 'lucide-react'
+import { Settings, RefreshCw, AlertTriangle, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -81,12 +81,14 @@ function SwapPage() {
   const [lastUserInput, setLastUserInput] = useState(Date.now())
   const [networkFee, setNetworkFee] = useState<string>("0")
 
-  const provider = publicClient
-    ? new ethers.JsonRpcProvider(publicClient.transport.url, {
-        chainId: publicClient.chain.id,
-        name: publicClient.chain.name,
-      })
-    : null
+  const provider = useMemo(() => {
+    return publicClient
+      ? new ethers.JsonRpcProvider(publicClient.transport.url, {
+          chainId: publicClient.chain.id,
+          name: publicClient.chain.name,
+        })
+      : null
+  }, [publicClient])
 
   const getSigner = async () => {
     if (!walletClient) return null
@@ -99,26 +101,28 @@ function SwapPage() {
     }
   }
 
-  const calculateNetworkFee = async () => {
-    if (!provider) return "0"
+  const calculateNetworkFee = useMemo(() => {
+    return async () => {
+      if (!provider) return "0"
 
-    try {
-      const feeData = await provider.getFeeData()
-      const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
-      const gasLimit = BigInt(500000) // Standard gas limit for swaps
-      const gasCost = gasPrice * gasLimit
+      try {
+        const feeData = await provider.getFeeData()
+        const gasPrice = feeData.gasPrice || ethers.parseUnits("5", "gwei")
+        const gasLimit = BigInt(500000) // Standard gas limit for swaps
+        const gasCost = gasPrice * gasLimit
 
-      // Convert to CHZ (assuming 18 decimals) and then to USD equivalent
-      const gasCostInCHZ = Number(ethers.formatUnits(gasCost, 18))
-      // Assuming 1 CHZ = $0.10 for estimation (this could be fetched from an API)
-      const gasCostInUSD = gasCostInCHZ * 0.1
+        // Convert to CHZ (assuming 18 decimals) and then to USD equivalent
+        const gasCostInCHZ = Number(ethers.formatUnits(gasCost, 18))
+        // Assuming 1 CHZ = $0.10 for estimation (this could be fetched from an API)
+        const gasCostInUSD = gasCostInCHZ * 0.1
 
-      return gasCostInUSD.toFixed(4)
-    } catch (error) {
-      console.error("Error calculating network fee:", error)
-      return "0.0050" // Fallback value
+        return gasCostInUSD.toFixed(4)
+      } catch (error) {
+        console.error("Error calculating network fee:", error)
+        return "0.0050" // Fallback value
+      }
     }
-  }
+  }, [provider])
 
   useEffect(() => {
     const checkTokenAllowance = async () => {
@@ -383,7 +387,7 @@ function SwapPage() {
     if (provider) {
       calculateNetworkFee().then(setNetworkFee)
     }
-  }, [provider])
+  }, [provider, calculateNetworkFee])
 
   const handleFromAmountChange = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
@@ -721,7 +725,7 @@ function SwapPage() {
             {((fromToken?.symbol === "CHZ" && toToken?.symbol === "PEPPER") ||
               (fromToken?.symbol === "PEPPER" && toToken?.symbol === "CHZ")) && (
               <button
-                onClick={() => window.location.href = "/competition"}
+                onClick={() => (window.location.href = "/competition")}
                 className="w-full my-4 p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg hover:from-orange-500/30 hover:to-red-500/30 transition-all duration-200 cursor-pointer"
               >
                 <div className="flex items-center gap-2">

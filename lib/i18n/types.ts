@@ -16,6 +16,7 @@ export interface TranslationKeys {
     launchpad: string
     competition: string
     charts: string
+    marketplace: string
     academy: string
   }
 
@@ -338,6 +339,120 @@ export interface TranslationKeys {
       rewardsDistributed: string
       manualClaim: string
     }
+    errors: {
+      loadFailed: string
+      claimFailed: string
+    }
+    messages: {
+      loadingData: string
+      claimingRewards: string
+      claimSuccess: string
+      addressCopied: string
+    }
+    dialog: {
+      claimTitle: string
+      claimDescription: string
+      cancel: string
+      confirmClaim: string
+      claimAlertDescription: string
+    }
+    currentCompetition: string
+    totalVolume: string
+    activeTraders: string
+    dailyRewards: string
+    previousDay: string
+    connectWalletToViewRewards: string
+    buyPepperDescription: string
+    todaysVolume: string
+    estimatedReward: string
+    totalRewards: string
+    claimableDays: string
+    termsConditionsList: {
+      rewardsDistribution: string
+      onlySwapsCount: string
+      manualClaim: string
+      competitionRuns: string
+    }
+    fairPlayDescription: string
+  }
+
+  // Marketplace section added
+  marketplace: {
+    title: string
+    subtitle: string
+    explore: string
+    myNfts: string
+    create: string
+    activity: string
+    collections: string
+    listings: string
+    auctions: string
+    buy: string
+    sell: string
+    bid: string
+    offer: string
+    price: string
+    floorPrice: string
+    volume: string
+    owners: string
+    items: string
+    listed: string
+    sold: string
+    transferred: string
+    minted: string
+    noItemsFound: string
+    loadingNfts: string
+    connectWalletToView: string
+    buyNow: string
+    placeBid: string
+    acceptOffer: string
+    cancelListing: string
+    listForSale: string
+    createAuction: string
+    highestBid: string
+    auctionEnds: string
+    timeLeft: string
+    ended: string
+    live: string
+    upcoming: string
+    reserve: string
+    noReserve: string
+    minimumBid: string
+    currentBid: string
+    bidHistory: string
+    priceHistory: string
+    properties: string
+    description: string
+    details: string
+    contractAddress: string
+    tokenId: string
+    tokenStandard: string
+    blockchain: string
+    creator: string
+    owner: string
+    royalties: string
+    listingPrice: string
+    auctionPrice: string
+    duration: string
+    startingBid: string
+    buyoutPrice: string
+    errors: {
+      loadFailed: string
+      purchaseFailed: string
+      bidFailed: string
+      listingFailed: string
+      cancelFailed: string
+      insufficientBalance: string
+      invalidPrice: string
+      auctionEnded: string
+      notOwner: string
+    }
+    success: {
+      purchaseSuccess: string
+      bidSuccess: string
+      listingSuccess: string
+      cancelSuccess: string
+    }
   }
 
   // Common
@@ -364,6 +479,9 @@ export interface TranslationKeys {
       metamask: string
       walletconnect: string
       coinbase: string
+      okx: string
+      binance: string
+      socios: string
       default: string
     }
   }

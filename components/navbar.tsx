@@ -7,26 +7,28 @@ import { usePathname } from "next/navigation"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket, FileText } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket, FileText, Trophy } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/context"
 
 export function Navbar() {
   const pathname = usePathname()
   const { account, isConnected, connect, disconnect, provider } = useWeb3()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [balance, setBalance] = useState<string>("0")
+  const { t } = useTranslation()
 
-  // Update the navItems array to include the Launchpad and Docs
   const navItems = [
-    { name: "Home", path: "/", icon: Home },
-    { name: "Swap", path: "/swap", icon: ArrowLeftRight },
-    { name: "Pool", path: "/pool", icon: Droplets },
-    { name: "Charts", path: "/charts", icon: LineChart },
-    { name: "Launchpad", path: "/launchpad", icon: Rocket },
+    { name: t.nav.home, path: "/", icon: Home },
+    { name: t.nav.swap, path: "/swap", icon: ArrowLeftRight },
+    { name: t.nav.pool, path: "/pool", icon: Droplets },
+    { name: t.nav.charts, path: "/charts", icon: LineChart },
+    { name: t.nav.competition, path: "/competition", icon: Trophy },
+    { name: t.nav.launchpad, path: "/launchpad", icon: Rocket },
     { name: "Docs", path: "/docs", icon: FileText },
-    { name: "Academy", href: "https://academy.diviswap.io", icon: BookOpen, external: true },
+    { name: t.nav.academy, href: "https://academy.diviswap.io", icon: BookOpen, external: true },
   ]
 
   useEffect(() => {
@@ -44,7 +46,6 @@ export function Navbar() {
 
     fetchBalance()
 
-    // Añadir un listener para el evento balanceUpdated
     const handleBalanceUpdate = () => {
       fetchBalance()
     }
@@ -52,7 +53,6 @@ export function Navbar() {
     if (typeof window !== "undefined") {
       window.addEventListener("balanceUpdated", handleBalanceUpdate)
 
-      // Limpiar el listener cuando el componente se desmonte
       return () => {
         window.removeEventListener("balanceUpdated", handleBalanceUpdate)
       }
@@ -125,7 +125,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t border-border/10 bg-background/80 backdrop-blur">
           <div className="container py-4 flex flex-col gap-4">

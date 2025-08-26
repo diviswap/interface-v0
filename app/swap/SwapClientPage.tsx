@@ -74,7 +74,7 @@ function SwapPage() {
     fromAmount: "",
     toAmount: "",
   })
-  const [activeInput, setActiveInput] = useState<number | null>(null)
+  const [activeInput, setActiveInput] = useState<"from" | "to" | null>(null)
   const [isUsingKayenRouter, setIsUsingKayenRouter] = useState(false)
   const [isApprovedForKayen, setIsApprovedForKayen] = useState(false)
   const [isUserTyping, setIsUserTyping] = useState(false)
@@ -164,7 +164,11 @@ function SwapPage() {
   useEffect(() => {
     const getQuote = async () => {
       if (!isConnected || !account) {
-        setToAmount("")
+        if (activeInput === "from") {
+          setToAmount("")
+        } else if (activeInput === "to") {
+          setFromAmount("")
+        }
         setExchangeRate(0)
         setPriceImpact(0)
         setCurrentTrade(null)
@@ -173,8 +177,25 @@ function SwapPage() {
         return
       }
 
-      if (!fromToken || !toToken || !fromAmount || Number(fromAmount) === 0 || !provider) {
-        setToAmount("")
+      if (!fromToken || !toToken || !provider) {
+        if (activeInput === "from") {
+          setToAmount("")
+        } else if (activeInput === "to") {
+          setFromAmount("")
+        }
+        setExchangeRate(0)
+        setPriceImpact(0)
+        setCurrentTrade(null)
+        setQuoteError(null)
+        setIsLoadingQuote(false)
+        return
+      }
+
+      // Determinar qué input está activo y tiene valor
+      const hasFromAmount = fromAmount && Number(fromAmount) > 0
+      const hasToAmount = toAmount && Number(toAmount) > 0
+
+      if (!hasFromAmount && !hasToAmount) {
         setExchangeRate(0)
         setPriceImpact(0)
         setCurrentTrade(null)
@@ -201,45 +222,96 @@ function SwapPage() {
           decimals: toToken.decimals,
         }
 
-        const amountIn = ethers.parseUnits(fromAmount, fromToken.decimals)
+        // Si el usuario está escribiendo en el campo "from" o solo hay valor en "from"
+        if (activeInput === "from" || (hasFromAmount && !hasToAmount)) {
+          const amountIn = ethers.parseUnits(fromAmount, fromToken.decimals)
+          const bestRoute = await findBestRoute(tokenA, tokenB, provider, amountIn)
 
-        const bestRoute = await findBestRoute(tokenA, tokenB, provider, amountIn)
+          if (bestRoute.exists) {
+            const trade = createTrade(
+              amountIn,
+              bestRoute.path,
+              bestRoute.reserves,
+              bestRoute.isKayenRouter,
+              bestRoute.outputAmount,
+              bestRoute.priceImpact,
+            )
 
-        if (bestRoute.exists) {
-          const trade = createTrade(
-            amountIn,
-            bestRoute.path,
-            bestRoute.reserves,
-            bestRoute.isKayenRouter,
-            bestRoute.outputAmount,
-            bestRoute.priceImpact,
-          )
+            setCurrentTrade(trade)
+            setTradePath(trade.path)
+            setIsMultiHopRoute(bestRoute.path.length > 2)
+            setIsUsingKayenRouter(bestRoute.isKayenRouter || false)
 
-          setCurrentTrade(trade)
-          setTradePath(trade.path)
-          setIsMultiHopRoute(bestRoute.path.length > 2)
-          setIsUsingKayenRouter(bestRoute.isKayenRouter || false)
+            if (bestRoute.path.length > 2) {
+              const routeSymbols = bestRoute.path.map((token) => token.symbol).join(" → ")
+              setRouteDescription(routeSymbols)
+            } else {
+              setRouteDescription("")
+            }
 
-          if (bestRoute.path.length > 2) {
-            const routeSymbols = bestRoute.path.map((token) => token.symbol).join(" → ")
-            setRouteDescription(routeSymbols)
+            setToAmount(ethers.formatUnits(trade.outputAmount, toToken.decimals))
+            setExchangeRate(trade.executionPrice)
+            setPriceImpact(trade.priceImpact)
           } else {
-            setRouteDescription("")
+            throw new Error("NO_ROUTE_FOUND")
           }
-
-          setToAmount(ethers.formatUnits(trade.outputAmount, toToken.decimals))
-          setExchangeRate(trade.executionPrice)
-          setPriceImpact(trade.priceImpact)
-
-          console.log(
-            `Trade Info - Price Impact: ${trade.priceImpact.toFixed(2)}%, Router: ${bestRoute.isKayenRouter ? "FanX" : "Main"}`,
-          )
-        } else {
-          throw new Error("NO_ROUTE_FOUND")
         }
+        // Si el usuario está escribiendo en el campo "to" o solo hay valor en "to"
+        else if (activeInput === "to" || (hasToAmount && !hasFromAmount)) {
+          // Calcular la cantidad de entrada requerida para obtener la cantidad de salida deseada
+          const calculatedFromAmount = await calculateReverseAmount(toAmount, fromToken, toToken)
+
+          if (calculatedFromAmount && Number(calculatedFromAmount) > 0) {
+            setFromAmount(calculatedFromAmount)
+
+            // Ahora calcular el trade normal para obtener todos los detalles
+            const amountIn = ethers.parseUnits(calculatedFromAmount, fromToken.decimals)
+            const bestRoute = await findBestRoute(tokenA, tokenB, provider, amountIn)
+
+            if (bestRoute.exists) {
+              const trade = createTrade(
+                amountIn,
+                bestRoute.path,
+                bestRoute.reserves,
+                bestRoute.isKayenRouter,
+                bestRoute.outputAmount,
+                bestRoute.priceImpact,
+              )
+
+              setCurrentTrade(trade)
+              setTradePath(trade.path)
+              setIsMultiHopRoute(bestRoute.path.length > 2)
+              setIsUsingKayenRouter(bestRoute.isKayenRouter || false)
+
+              if (bestRoute.path.length > 2) {
+                const routeSymbols = bestRoute.path.map((token) => token.symbol).join(" → ")
+                setRouteDescription(routeSymbols)
+              } else {
+                setRouteDescription("")
+              }
+
+              setExchangeRate(trade.executionPrice)
+              setPriceImpact(trade.priceImpact)
+            } else {
+              throw new Error("NO_ROUTE_FOUND")
+            }
+          } else {
+            throw new Error("UNABLE_TO_CALCULATE_REVERSE")
+          }
+        }
+
+        console.log(
+          `Trade Info - Price Impact: ${priceImpact.toFixed(2)}%, Router: ${isUsingKayenRouter ? "FanX" : "Main"}`,
+        )
       } catch (error: any) {
         console.error("Error getting quote:", error)
-        setToAmount("")
+
+        if (activeInput === "from") {
+          setToAmount("")
+        } else if (activeInput === "to") {
+          setFromAmount("")
+        }
+
         setExchangeRate(0)
         setPriceImpact(0)
         setCurrentTrade(null)
@@ -291,7 +363,77 @@ function SwapPage() {
       clearTimeout(debounceTimeout)
       clearInterval(priceUpdateInterval)
     }
-  }, [fromToken, toToken, fromAmount, provider, isUserTyping, lastUserInput])
+  }, [fromToken, toToken, fromAmount, toAmount, activeInput, provider, isUserTyping, lastUserInput])
+
+  const calculateReverseAmount = async (outputAmount: string, tokenA: any, tokenB: any) => {
+    if (!outputAmount || !tokenA || !tokenB || !provider || Number(outputAmount) === 0) {
+      return "0"
+    }
+
+    try {
+      const tokenAInfo: TokenInfo = {
+        address: tokenA.address,
+        symbol: tokenA.symbol,
+        name: tokenA.name,
+        decimals: tokenA.decimals,
+      }
+
+      const tokenBInfo: TokenInfo = {
+        address: tokenB.address,
+        symbol: tokenB.symbol,
+        name: tokenB.name,
+        decimals: tokenB.decimals,
+      }
+
+      const amountOut = ethers.parseUnits(outputAmount, tokenB.decimals)
+
+      // Buscar la mejor ruta para el cálculo inverso
+      const bestRoute = await findBestRoute(tokenAInfo, tokenBInfo, provider, ethers.parseUnits("1", tokenA.decimals))
+
+      if (bestRoute.exists && bestRoute.reserves.length > 0) {
+        // Para cálculo inverso, necesitamos usar getAmountIn en lugar de getAmountOut
+        let requiredInput: bigint
+
+        if (bestRoute.path.length === 2) {
+          // Ruta directa - usar fórmula inversa de Uniswap V2
+          const [reserveIn, reserveOut] = bestRoute.reserves[0]
+          requiredInput = getAmountIn(amountOut, reserveIn, reserveOut)
+        } else {
+          // Ruta multi-hop - calcular iterativamente desde el final
+          let amount = amountOut
+          for (let i = bestRoute.reserves.length - 1; i >= 0; i--) {
+            const [reserveIn, reserveOut] = bestRoute.reserves[i]
+            amount = getAmountIn(amount, reserveIn, reserveOut)
+          }
+          requiredInput = amount
+        }
+
+        return ethers.formatUnits(requiredInput, tokenA.decimals)
+      }
+
+      return "0"
+    } catch (error) {
+      console.error("Error calculating reverse amount:", error)
+      return "0"
+    }
+  }
+
+  const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bigint): bigint => {
+    if (amountOut <= BigInt(0)) {
+      throw new Error("INSUFFICIENT_OUTPUT_AMOUNT")
+    }
+
+    if (reserveIn <= BigInt(0) || reserveOut <= BigInt(0)) {
+      throw new Error("INSUFFICIENT_LIQUIDITY")
+    }
+
+    // Fórmula de Uniswap V2 para getAmountIn:
+    // amountIn = (reserveIn * amountOut * 1000) / ((reserveOut - amountOut) * 997) + 1
+    const numerator = reserveIn * amountOut * BigInt(1000)
+    const denominator = (reserveOut - amountOut) * BigInt(997)
+
+    return numerator / denominator + BigInt(1)
+  }
 
   useEffect(() => {
     const updateBalances = async () => {
@@ -392,18 +534,28 @@ function SwapPage() {
   const handleFromAmountChange = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setFromAmount(value)
-      setActiveInput(0)
+      setActiveInput("from")
       setIsUserTyping(true)
       setLastUserInput(Date.now())
+
+      // Si el usuario borra el campo from, limpiar el campo to también
+      if (value === "") {
+        setToAmount("")
+      }
     }
   }
 
   const handleToAmountChange = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setToAmount(value)
-      setActiveInput(1)
+      setActiveInput("to")
       setIsUserTyping(true)
       setLastUserInput(Date.now())
+
+      // Si el usuario borra el campo to, limpiar el campo from también
+      if (value === "") {
+        setFromAmount("")
+      }
     }
   }
 
@@ -411,8 +563,17 @@ function SwapPage() {
     const temp = fromToken
     setFromToken(toToken)
     setToToken(temp)
+
+    const tempAmount = fromAmount
     setFromAmount(toAmount)
-    setToAmount(fromAmount)
+    setToAmount(tempAmount)
+
+    // Mantener el mismo input activo pero invertir la lógica
+    if (activeInput === "from") {
+      setActiveInput("to")
+    } else if (activeInput === "to") {
+      setActiveInput("from")
+    }
   }
 
   const handleApprove = async () => {
@@ -498,16 +659,14 @@ function SwapPage() {
         throw new Error("Failed to get signer")
       }
 
-      const routerAddress = isUsingKayenRouter ? KAYEN_ROUTER_ADDRESS : ROUTER_ADDRESS
-      const router = getRouterContract(signer, routerAddress)
+      const path = tradePath.map((addr) => (addr === ethers.ZeroAddress ? WCHZ_ADDRESS : addr))
+      const router = getRouterContract(signer, undefined, path)
       const deadlineTime = Math.floor(Date.now() / 1000) + deadline * 60
 
       const amountIn = ethers.parseUnits(fromAmount, fromToken.decimals)
       const minAmountOut = getMinimumAmountOut(currentTrade.outputAmount, slippage)
 
       let tx
-
-      const path = tradePath.map((addr) => (addr === ethers.ZeroAddress ? WCHZ_ADDRESS : addr))
 
       if (fromToken.address === ethers.ZeroAddress) {
         tx = await swapExactETHForTokens(router, amountIn, minAmountOut, path, account, deadlineTime, signer)
@@ -694,7 +853,7 @@ function SwapPage() {
               <div className="rounded-xl bg-secondary p-3 sm:p-4 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 relative">
-                    {isLoading ? (
+                    {isLoadingQuote && activeInput === "from" ? (
                       <Skeleton className="h-8 sm:h-9 w-full bg-muted/50" />
                     ) : (
                       <Input
@@ -703,7 +862,7 @@ function SwapPage() {
                         value={toAmount}
                         onChange={(e) => handleToAmountChange(e.target.value)}
                         className="border-0 bg-transparent text-xl sm:text-2xl font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
-                        disabled={isLoading}
+                        disabled={isLoadingQuote && activeInput === "from"}
                       />
                     )}
                   </div>
@@ -712,11 +871,11 @@ function SwapPage() {
               </div>
             </div>
 
-            {isLoading && (
+            {isLoadingQuote && (
               <div className="flex justify-center py-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                  <span>Fetching best price...</span>
+                  <span>{activeInput === "from" ? "Calculating output amount..." : "Calculating input amount..."}</span>
                 </div>
               </div>
             )}

@@ -18,6 +18,8 @@ interface TokenSelectorProps {
   showBalance?: boolean
 }
 
+const WCHZ_ADDRESS = "0x677F7e16C7Dd57be1D4C8aD1244883214953DC47"
+
 export function TokenSelector({ selectedToken, onSelectToken, otherToken, showBalance = true }: TokenSelectorProps) {
   const [open, setOpen] = useState(false)
   const [tokens, setTokens] = useState([DEFAULT_TOKEN])
@@ -125,8 +127,10 @@ export function TokenSelector({ selectedToken, onSelectToken, otherToken, showBa
     }
   }, [tokens, isConnected, open, showBalance, fetchTokenBalances])
 
-  // Filter out the other selected token
-  const availableTokens = tokens.filter((token) => !otherToken || token.address !== otherToken.address)
+  // Filter out the other selected token and wCHZ token
+  const availableTokens = tokens.filter(
+    (token) => (!otherToken || token.address !== otherToken.address) && token.address !== WCHZ_ADDRESS,
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -135,7 +139,7 @@ export function TokenSelector({ selectedToken, onSelectToken, otherToken, showBa
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="min-w-[80px] md:min-w-[140px] justify-between"
+          className="min-w-[80px] md:min-w-[140px] justify-between bg-transparent"
         >
           {selectedToken ? (
             <div className="flex items-center gap-2">

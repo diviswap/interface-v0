@@ -894,6 +894,8 @@ export function createTrade(
 
 // Función para calcular la cantidad mínima de salida con slippage
 export function getMinimumAmountOut(amountOut: bigint, slippagePercentage: number): bigint {
-  const slippageFactor = BigInt(Math.floor((1 - slippagePercentage / 100) * 10000)) / BigInt(10000)
-  return amountOut * slippageFactor
+  // Convert slippage percentage to basis points for better precision
+  const slippageBasisPoints = BigInt(Math.floor(slippagePercentage * 100))
+  const slippageFactor = BigInt(10000) - slippageBasisPoints
+  return (amountOut * slippageFactor) / BigInt(10000)
 }

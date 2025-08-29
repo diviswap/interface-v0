@@ -73,6 +73,9 @@ function SwapPage() {
     toToken: null,
     fromAmount: "",
     toAmount: "",
+    actualAmountIn: "",
+    actualMinAmountOut: "",
+    actualSlippage: 0,
   })
   const [activeInput, setActiveInput] = useState<"from" | "to" | null>(null)
   const [isUsingKayenRouter, setIsUsingKayenRouter] = useState(false)
@@ -666,6 +669,17 @@ function SwapPage() {
       const amountIn = ethers.parseUnits(fromAmount, fromToken.decimals)
       const minAmountOut = getMinimumAmountOut(currentTrade.outputAmount, slippage)
 
+      console.log("[v0] Swap transaction parameters:")
+      console.log("[v0] Amount In:", ethers.formatUnits(amountIn, fromToken.decimals), fromToken.symbol)
+      console.log("[v0] Min Amount Out:", ethers.formatUnits(minAmountOut, toToken.decimals), toToken.symbol)
+      console.log(
+        "[v0] Expected Output:",
+        ethers.formatUnits(currentTrade.outputAmount, toToken.decimals),
+        toToken.symbol,
+      )
+      console.log("[v0] Slippage:", slippage + "%")
+      console.log("[v0] Path:", path)
+
       let tx
 
       if (fromToken.address === ethers.ZeroAddress) {
@@ -688,13 +702,19 @@ function SwapPage() {
       if (receipt.status === 1) {
         setSwapTxHash(tx.hash)
 
-        // Actualizar swapDetails con los datos reales del swap antes de mostrar el modal
         setSwapDetails({
           fromToken: fromToken,
           toToken: toToken,
-          fromAmount: fromAmount,
-          toAmount: toAmount,
+          fromAmount: ethers.formatUnits(amountIn, fromToken.decimals),
+          toAmount: ethers.formatUnits(currentTrade.outputAmount, toToken.decimals),
+          actualAmountIn: ethers.formatUnits(amountIn, fromToken.decimals),
+          actualMinAmountOut: ethers.formatUnits(minAmountOut, toToken.decimals),
+          actualSlippage: slippage,
         })
+
+        console.log("[v0] Swap completed successfully with actual values:")
+        console.log("[v0] Actual Amount In:", ethers.formatUnits(amountIn, fromToken.decimals))
+        console.log("[v0] Actual Min Amount Out:", ethers.formatUnits(minAmountOut, toToken.decimals))
 
         // Mostrar el modal de confirmación después del swap exitoso y confirmado
         setIsConfirmationOpen(true)
@@ -933,10 +953,14 @@ function SwapPage() {
                           return `${formatCurrency(Number(ethers.formatUnits(minAmount, toToken.decimals)), 6)} ${toToken.symbol}`
                         } catch (error) {
                           console.error("Error calculating minimum amount:", error)
+                          if (toAmount && !isNaN(Number(toAmount)) && Number(toAmount) > 0) {
+                            const minReceived = Number(toAmount) * (1 - slippage / 100)
+                            return `${formatCurrency(minReceived, 6)} ${toToken.symbol}`
+                          }
+                          return "0"
                         }
                       }
 
-                      // Fallback calculation when no currentTrade
                       if (toAmount && !isNaN(Number(toAmount)) && Number(toAmount) > 0) {
                         const minReceived = Number(toAmount) * (1 - slippage / 100)
                         return `${formatCurrency(minReceived, 6)} ${toToken.symbol}`
@@ -1035,6 +1059,9 @@ function SwapPage() {
         toToken={swapDetails.toToken}
         fromAmount={swapDetails.fromAmount}
         toAmount={swapDetails.toAmount}
+        actualAmountIn={swapDetails.actualAmountIn}
+        actualMinAmountOut={swapDetails.actualMinAmountOut}
+        actualSlippage={swapDetails.actualSlippage}
         txHash={swapTxHash}
       />
     </div>

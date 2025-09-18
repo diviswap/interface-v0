@@ -2,6 +2,7 @@
   "name": "diviswap",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -47,8 +48,6 @@
     "@radix-ui/react-toggle": "^1.0.3",
     "@radix-ui/react-toggle-group": "^1.0.4",
     "@radix-ui/react-tooltip": "latest",
-    "@remix-run/react": "latest",
-    "@sveltejs/kit": "latest",
     "@tanstack/react-query": "latest",
     "@uniswap/sdk": "latest",
     "@vercel/analytics": "latest",
@@ -69,12 +68,9 @@
     "react-dom": "^18",
     "recharts": "latest",
     "sonner": "latest",
-    "svelte": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "viem": "latest",
-    "vue": "latest",
-    "vue-router": "latest",
     "wagmi": "latest"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import BridgePage from "./BridgePage"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Cross-Chain Bridge for Chiliz Chain",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function BridgePageWrapper() {
-  return <BridgePage />
+  return (
+    <NetworkGuard>
+      <BridgePage />
+    </NetworkGuard>
+  )
 }

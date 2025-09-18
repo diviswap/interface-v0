@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import SwapPage from "./SwapClientPage"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Swap Tokens on Chiliz Chain",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function SwapPageWrapper() {
-  return <SwapPage />
+  return (
+    <NetworkGuard>
+      <SwapPage />
+    </NetworkGuard>
+  )
 }

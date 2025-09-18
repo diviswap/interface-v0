@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import GovernancePage from "./GovernancePage"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Decentralized Governance",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function GovernancePageWrapper() {
-  return <GovernancePage />
+  return (
+    <NetworkGuard>
+      <GovernancePage />
+    </NetworkGuard>
+  )
 }

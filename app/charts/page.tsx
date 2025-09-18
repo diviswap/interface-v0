@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import ChartsPage from "./ChartsPageClient"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Real-Time DeFi Charts and Analytics",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function ChartsPageWrapper() {
-  return <ChartsPage />
+  return (
+    <NetworkGuard>
+      <ChartsPage />
+    </NetworkGuard>
+  )
 }

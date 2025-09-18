@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import LaunchpadPage from "./LaunchpadPageClient"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | FintSport Token Launchpad",
@@ -28,5 +29,9 @@ export const metadata: Metadata = {
 }
 
 export default function LaunchpadPageWrapper() {
-  return <LaunchpadPage />
+  return (
+    <NetworkGuard>
+      <LaunchpadPage />
+    </NetworkGuard>
+  )
 }

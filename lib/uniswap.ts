@@ -238,8 +238,26 @@ export function tryParseAmount(value?: string, currency?: Currency): CurrencyAmo
   if (!value || !currency) {
     return undefined
   }
+
+  let normalizedValue = value.trim()
+
+  // Handle cases like ".0", ".5" by adding leading zero
+  if (normalizedValue.startsWith(".")) {
+    normalizedValue = "0" + normalizedValue
+  }
+
+  // Handle case where value is just "."
+  if (normalizedValue === "." || normalizedValue === "") {
+    return undefined
+  }
+
+  // Validate that the normalized value is a valid number
+  if (isNaN(Number(normalizedValue))) {
+    return undefined
+  }
+
   try {
-    const typedValueParsed = ethers.parseUnits(value, currency.decimals).toString()
+    const typedValueParsed = ethers.parseUnits(normalizedValue, currency.decimals).toString()
     if (typedValueParsed !== "0") {
       return currency instanceof Token
         ? new TokenAmount(currency, JSBI.BigInt(typedValueParsed))
@@ -247,7 +265,7 @@ export function tryParseAmount(value?: string, currency?: Currency): CurrencyAmo
     }
   } catch (error) {
     // should fail if the user specifies too many decimal places of precision (or maybe exceed max uint?)
-    console.debug(`Failed to parse input amount: "${value}"`, error)
+    console.debug(`Failed to parse input amount: "${value}" (normalized: "${normalizedValue}")`, error)
   }
   // necessary for all paths to return a value
   return undefined

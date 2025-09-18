@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import StakePageContent from "./StakePageContent"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Stake Tokens for Rewards",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function StakePageWrapper() {
-  return <StakePageContent />
+  return (
+    <NetworkGuard>
+      <StakePageContent />
+    </NetworkGuard>
+  )
 }

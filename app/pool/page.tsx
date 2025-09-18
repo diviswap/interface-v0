@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import PoolPage from "./PoolPageClient"
+import { NetworkGuard } from "@/components/network-guard"
 
 export const metadata: Metadata = {
   title: "DiviSwap | Liquidity Pools on Chiliz Chain",
@@ -29,5 +30,9 @@ export const metadata: Metadata = {
 }
 
 export default function PoolPageWrapper() {
-  return <PoolPage />
+  return (
+    <NetworkGuard>
+      <PoolPage />
+    </NetworkGuard>
+  )
 }

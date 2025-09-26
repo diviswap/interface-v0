@@ -900,21 +900,6 @@ function SwapPage() {
               </div>
             )}
 
-            {/* Made CHZ/PEPPER competition badge clickable and improved text */}
-            {((fromToken?.symbol === "CHZ" && toToken?.symbol === "PEPPER") ||
-              (fromToken?.symbol === "PEPPER" && toToken?.symbol === "CHZ")) && (
-              <button
-                onClick={() => (window.location.href = "/competition")}
-                className="w-full my-4 p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg hover:from-orange-500/30 hover:to-red-500/30 transition-all duration-200 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-orange-200">{t.swap.competitionBadge.title}</span>
-                </div>
-                <p className="text-xs text-orange-300/80 mt-1 ml-4">{t.swap.competitionBadge.description}</p>
-              </button>
-            )}
-
             {quoteError && (
               <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
                 <div className="flex items-center gap-2">

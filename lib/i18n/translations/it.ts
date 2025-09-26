@@ -287,6 +287,7 @@ export const it: TranslationKeys = {
       presaleEnded: "La prevendita è terminata",
       insufficientBalance: "Saldo insufficiente",
       invalidAmount: "Importo non valido",
+      invalidAmount: "Importo non valido",
     },
     stats: {
       totalRaised: "Totale Raccolto",
@@ -297,11 +298,11 @@ export const it: TranslationKeys = {
     },
   },
   competition: {
-    title: "Competizione Trading $PEPPER",
+    title: "Competizione Trading $PEPPER - TERMINATA",
     subtitle:
-      "Scambia $PEPPER su DiviSwap per scalare le classifiche. I migliori trader vincono ricompense esclusive di $PEPPER giornaliere, settimanali e mensili!",
-    leaderboards: "Classifiche",
-    rankingDescription: "Classifica dei migliori trader di $PEPPER.",
+      "La competizione di trading $PEPPER è conclusa! Visualizza i risultati finali e rivendica le tue ricompense se hai partecipato.",
+    leaderboards: "Classifiche Finali",
+    rankingDescription: "Classifica finale dei migliori trader di $PEPPER.",
     daily: "Giornaliero",
     weekly: "Settimanale",
     monthly: "Mensile",
@@ -318,14 +319,15 @@ export const it: TranslationKeys = {
     availableToClaim: "Disponibile da rivendicare",
     claimRewards: "Rivendica Ricompense",
     claiming: "Rivendicando...",
-    howToParticipate: "Come Partecipare",
-    connectYourWallet: "Connetti il Tuo Wallet",
-    connectWalletDesc: "Connetti un wallet compatibile a DiviSwap.",
-    getTokens: "Ottieni CHZ e $PEPPER",
-    getTokensDesc: "Assicurati di avere CHZ per le commissioni gas e di essere pronto a scambiare $PEPPER.",
-    tradeToken: "Scambia $PEPPER",
+    howToParticipate: "Risultati della Competizione",
+    connectYourWallet: "Visualizza i Tuoi Risultati",
+    connectWalletDesc:
+      "Connetti il tuo wallet per visualizzare i risultati finali della competizione e rivendicare le ricompense.",
+    getTokens: "Classifiche Finali",
+    getTokensDesc: "La competizione è terminata. Controlla le classifiche finali per vedere come hai performato.",
+    tradeToken: "Rivendica Ricompense",
     tradeTokenDesc:
-      "Ogni scambio con il token $PEPPER su DiviSwap conta automaticamente verso il tuo volume di competizione.",
+      "Se hai partecipato alla competizione, puoi ancora rivendicare qualsiasi ricompensa non rivendicata dalla tua attività di trading.",
     termsConditions: "Termini e Condizioni",
     fairPlayPolicy: "Politica Fair Play",
     fairPlayDesc:
@@ -342,7 +344,7 @@ export const it: TranslationKeys = {
       claimFailed: "Rivendicazione ricompense fallita. Riprova.",
     },
     messages: {
-      loadingData: "Caricamento dati competizione...",
+      loadingData: "Caricamento risultati finali della competizione...",
       claimingRewards: "Conferma la transazione nel tuo wallet.",
       claimSuccess: "Tutte le ricompense disponibili sono state rivendicate.",
       addressCopied: "Indirizzo contratto PEPPER copiato negli appunti.",
@@ -355,7 +357,7 @@ export const it: TranslationKeys = {
       claimAlertDescription:
         "Questa azione rivendicherà tutte le tue ricompense in sospeso. Assicurati di voler procedere.",
     },
-    currentCompetition: "Competizione Attuale",
+    currentCompetition: "Risultati Finali della Competizione",
     totalVolume: "Volume Totale (PEPPER)",
     activeTraders: "Trader Attivi",
     dailyRewards: "Ricompense Giornaliere (PEPPER)",

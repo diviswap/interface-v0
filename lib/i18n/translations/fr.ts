@@ -299,11 +299,11 @@ export const fr: TranslationKeys = {
     },
   },
   competition: {
-    title: "Compétition de Trading $PEPPER",
+    title: "Compétition de Trading $PEPPER - TERMINÉE",
     subtitle:
-      "Échangez $PEPPER sur DiviSwap pour gravir les classements. Les meilleurs traders gagnent des récompenses exclusives $PEPPER quotidiennes, hebdomadaires et mensuelles !",
-    leaderboards: "Classements",
-    rankingDescription: "Classement des meilleurs traders de $PEPPER.",
+      "La compétition de trading $PEPPER est terminée ! Consultez les résultats finaux et réclamez vos récompenses si vous avez participé.",
+    leaderboards: "Classements Finaux",
+    rankingDescription: "Classement final des meilleurs traders de $PEPPER.",
     daily: "Quotidien",
     weekly: "Hebdomadaire",
     monthly: "Mensuel",
@@ -320,14 +320,16 @@ export const fr: TranslationKeys = {
     availableToClaim: "Disponible à réclamer",
     claimRewards: "Réclamer les Récompenses",
     claiming: "Réclamation...",
-    howToParticipate: "Comment Participer",
-    connectYourWallet: "Connectez Votre Portefeuille",
-    connectWalletDesc: "Connectez un portefeuille compatible à DiviSwap.",
-    getTokens: "Obtenez CHZ et $PEPPER",
-    getTokensDesc: "Assurez-vous d'avoir CHZ pour les frais de gas et d'être prêt à échanger $PEPPER.",
-    tradeToken: "Échanger $PEPPER",
+    howToParticipate: "Résultats de la Compétition",
+    connectYourWallet: "Voir Vos Résultats",
+    connectWalletDesc:
+      "Connectez votre portefeuille pour voir vos résultats finaux de compétition et réclamer les récompenses.",
+    getTokens: "Classements Finaux",
+    getTokensDesc:
+      "La compétition est terminée. Consultez les classements finaux pour voir comment vous avez performé.",
+    tradeToken: "Réclamer les Récompenses",
     tradeTokenDesc:
-      "Chaque échange avec le token $PEPPER sur DiviSwap compte automatiquement vers votre volume de compétition.",
+      "Si vous avez participé à la compétition, vous pouvez toujours réclamer toutes les récompenses non réclamées de votre activité de trading.",
     termsConditions: "Termes et Conditions",
     fairPlayPolicy: "Politique de Fair-Play",
     fairPlayDesc:
@@ -344,7 +346,7 @@ export const fr: TranslationKeys = {
       claimFailed: "Échec de la réclamation des récompenses. Veuillez réessayer.",
     },
     messages: {
-      loadingData: "Chargement des données de compétition...",
+      loadingData: "Chargement des résultats finaux de la compétition...",
       claimingRewards: "Veuillez confirmer la transaction dans votre portefeuille.",
       claimSuccess: "Toutes les récompenses disponibles ont été réclamées.",
       addressCopied: "Adresse du contrat PEPPER copiée dans le presse-papiers.",
@@ -357,7 +359,7 @@ export const fr: TranslationKeys = {
       claimAlertDescription:
         "Cette action réclamera toutes vos récompenses en attente. Assurez-vous de vouloir continuer.",
     },
-    currentCompetition: "Compétition Actuelle",
+    currentCompetition: "Résultats Finaux de la Compétition",
     totalVolume: "Volume Total (PEPPER)",
     activeTraders: "Traders Actifs",
     dailyRewards: "Récompenses Quotidiennes (PEPPER)",

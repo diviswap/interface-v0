@@ -158,6 +158,8 @@ export default function CompetitionPageClient() {
 
   const pepperToken = TOKEN_LIST.find((token) => token.symbol === "PEPPER")
 
+  const isCompetitionEnded = competitionStats?.timeRemaining === 0
+
   useEffect(() => {
     const loadCompetitionData = async () => {
       if (!publicClient) return
@@ -312,37 +314,62 @@ export default function CompetitionPageClient() {
         </div>
       )}
 
+      {isCompetitionEnded && (
+        <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+          <Trophy className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800 dark:text-yellow-200">Competition Ended!</AlertTitle>
+          <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+            The trading competition has concluded. Check the final leaderboard below and claim your rewards if you
+            participated.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card className="bg-card/50 border-primary/20">
         <CardContent className="pt-6 text-center">
           <div className="inline-block bg-yellow-400/10 p-3 rounded-full">
             <Trophy className="h-10 w-10 text-yellow-400" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight mt-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-yellow-400">
-            {t.competition.title}
+            {isCompetitionEnded ? "Competition Results" : t.competition.title}
           </h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">{t.competition.subtitle}</p>
+          <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+            {isCompetitionEnded
+              ? "The trading competition has ended. View final results and claim your rewards below."
+              : t.competition.subtitle}
+          </p>
 
           {competitionStats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 max-w-4xl mx-auto">
               <div className="bg-card/30 rounded-lg p-4">
-                <div className="text-2xl font-bold text-primary">Day {competitionStats.currentDay}</div>
-                <div className="text-sm text-muted-foreground">{t.competition.currentCompetition}</div>
+                <div className="text-2xl font-bold text-primary">
+                  {isCompetitionEnded ? "Final Results" : `Day ${competitionStats.currentDay}`}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {isCompetitionEnded ? "Competition Completed" : t.competition.currentCompetition}
+                </div>
               </div>
               <div className="bg-card/30 rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary">
                   {Number.parseFloat(competitionStats.totalVolume).toLocaleString()}
                 </div>
-                <div className="text-sm text-muted-foreground">{t.competition.totalVolume}</div>
+                <div className="text-sm text-muted-foreground">
+                  {isCompetitionEnded ? "Final Volume" : t.competition.totalVolume}
+                </div>
               </div>
               <div className="bg-card/30 rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary">{competitionStats.participantCount}</div>
-                <div className="text-sm text-muted-foreground">{t.competition.activeTraders}</div>
+                <div className="text-sm text-muted-foreground">
+                  {isCompetitionEnded ? "Total Participants" : t.competition.activeTraders}
+                </div>
               </div>
               <div className="bg-card/30 rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary">
                   {Number.parseFloat(competitionStats.dailyRewardPool).toLocaleString()}
                 </div>
-                <div className="text-sm text-muted-foreground">{t.competition.dailyRewards}</div>
+                <div className="text-sm text-muted-foreground">
+                  {isCompetitionEnded ? "Total Rewards Distributed" : t.competition.dailyRewards}
+                </div>
               </div>
             </div>
           )}
@@ -352,6 +379,18 @@ export default function CompetitionPageClient() {
               <TimeRemaining seconds={competitionStats.timeRemaining} />
             </div>
           )}
+
+          {isCompetitionEnded && (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+                <Trophy className="h-5 w-5" />
+                <span className="font-semibold">Competition Successfully Completed!</span>
+              </div>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                Thank you to all participants. Winners can now claim their rewards.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -359,8 +398,12 @@ export default function CompetitionPageClient() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>{t.competition.leaderboards}</CardTitle>
-              <CardDescription>{t.competition.rankingDescription}</CardDescription>
+              <CardTitle>{isCompetitionEnded ? "Final Leaderboard" : t.competition.leaderboards}</CardTitle>
+              <CardDescription>
+                {isCompetitionEnded
+                  ? "Final rankings and results from the trading competition"
+                  : t.competition.rankingDescription}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between mb-4">
@@ -371,7 +414,7 @@ export default function CompetitionPageClient() {
                 <div className="text-center">
                   <div className="text-lg font-semibold">Day {selectedDay}</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedDay === maxDay ? "Current Day" : "Historical"}
+                    {selectedDay === maxDay ? (isCompetitionEnded ? "Final Day" : "Current Day") : "Historical"}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={goToNextDay} disabled={selectedDay >= maxDay}>
@@ -407,7 +450,9 @@ export default function CompetitionPageClient() {
                 </div>
               </div>
               <Button asChild className="w-full mt-4">
-                <Link href={`/swap?outputCurrency=${pepperToken.address}`}>{t.competition.tradePepper}</Link>
+                <Link href={`/swap?outputCurrency=${pepperToken.address}`}>
+                  {isCompetitionEnded ? "Continue Trading PEPPER" : t.competition.tradePepper}
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -415,7 +460,9 @@ export default function CompetitionPageClient() {
           <Card>
             <CardHeader>
               <CardTitle>{t.competition.yourRewards}</CardTitle>
-              <CardDescription>{t.competition.availableToClaim}</CardDescription>
+              <CardDescription>
+                {isCompetitionEnded ? "Claim your final rewards from the competition" : t.competition.availableToClaim}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {address ? (
@@ -423,21 +470,29 @@ export default function CompetitionPageClient() {
                   <div className="text-3xl font-bold">
                     {Number.parseFloat(totalClaimableRewards).toLocaleString()} $PEPPER
                   </div>
-                  <p className="text-sm text-muted-foreground">Available rewards from trading</p>
-                  <Button className="w-full mt-4" onClick={handleClaimClick} disabled={isClaiming}>
+                  <p className="text-sm text-muted-foreground">
+                    {isCompetitionEnded
+                      ? "Final rewards from competition participation"
+                      : "Available rewards from trading"}
+                  </p>
+                  <Button
+                    className="w-full mt-4"
+                    onClick={handleClaimClick}
+                    disabled={isClaiming || Number.parseFloat(totalClaimableRewards) === 0}
+                  >
                     {isClaiming ? t.competition.claiming : t.competition.claimRewards}
                   </Button>
 
                   {userData && (
                     <div className="mt-4 pt-4 border-t space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>{t.competition.todaysVolume}:</span>
+                        <span>{isCompetitionEnded ? "Final Volume:" : t.competition.todaysVolume + ":"}</span>
                         <span className="font-medium">
                           {Number.parseFloat(userData.volume).toLocaleString()} PEPPER
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>{t.competition.estimatedReward}:</span>
+                        <span>{isCompetitionEnded ? "Final Reward:" : t.competition.estimatedReward + ":"}</span>
                         <span className="font-medium text-green-500">
                           {Number.parseFloat(userData.estimatedReward).toLocaleString()} PEPPER
                         </span>
@@ -447,7 +502,11 @@ export default function CompetitionPageClient() {
                 </>
               ) : (
                 <div className="text-center">
-                  <p className="text-muted-foreground mb-4">{t.competition.connectWalletToViewRewards}</p>
+                  <p className="text-muted-foreground mb-4">
+                    {isCompetitionEnded
+                      ? "Connect your wallet to claim any earned rewards"
+                      : t.competition.connectWalletToViewRewards}
+                  </p>
                   <Button className="w-full" disabled>
                     Connect Wallet
                   </Button>
@@ -459,42 +518,81 @@ export default function CompetitionPageClient() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" /> {t.competition.howToParticipate}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-primary" />
+        {!isCompetitionEnded ? (
+          // Show participation instructions if competition is still running
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5" /> {t.competition.howToParticipate}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">{t.competition.connectYourWallet}</h4>
+                  <p className="text-sm text-muted-foreground">{t.competition.connectWalletDesc}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold">{t.competition.connectYourWallet}</h4>
-                <p className="text-sm text-muted-foreground">{t.competition.connectWalletDesc}</p>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Repeat className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">{t.competition.getTokens}</h4>
+                  <p className="text-sm text-muted-foreground">{t.competition.getTokensDesc}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Repeat className="h-5 w-5 text-primary" />
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ArrowLeftRight className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">{t.competition.tradeToken}</h4>
+                  <p className="text-sm text-muted-foreground">{t.competition.buyPepperDescription}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold">{t.competition.getTokens}</h4>
-                <p className="text-sm text-muted-foreground">{t.competition.getTokensDesc}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          // Show competition summary if ended
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" /> Competition Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-lg">
+                <Trophy className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
+                <h3 className="font-bold text-lg">Competition Completed!</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Thank you to all {competitionStats?.participantCount || 0} participants who traded a total volume of{" "}
+                  {competitionStats ? Number.parseFloat(competitionStats.totalVolume).toLocaleString() : 0} PEPPER
+                  tokens.
+                </p>
               </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <ArrowLeftRight className="h-5 w-5 text-primary" />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Competition Duration:</span>
+                  <span className="font-medium">{competitionStats?.currentDay || 0} Days</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Rewards:</span>
+                  <span className="font-medium text-green-600">
+                    {competitionStats ? Number.parseFloat(competitionStats.dailyRewardPool).toLocaleString() : 0} PEPPER
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className="font-medium text-yellow-600">Rewards Available</span>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold">{t.competition.tradeToken}</h4>
-                <p className="text-sm text-muted-foreground">{t.competition.buyPepperDescription}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -509,10 +607,21 @@ export default function CompetitionPageClient() {
               <li>{t.competition.termsConditionsList.manualClaim}</li>
               <li>{t.competition.termsConditionsList.competitionRuns}</li>
             </ul>
-            <Alert variant="destructive">
-              <AlertTitle>{t.competition.fairPlayPolicy}</AlertTitle>
-              <AlertDescription>{t.competition.fairPlayDescription}</AlertDescription>
-            </Alert>
+            {!isCompetitionEnded ? (
+              <Alert variant="destructive">
+                <AlertTitle>{t.competition.fairPlayPolicy}</AlertTitle>
+                <AlertDescription>{t.competition.fairPlayDescription}</AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Reward Claims</AlertTitle>
+                <AlertDescription>
+                  All eligible participants can now claim their rewards. Rewards are distributed based on trading volume
+                  and final rankings.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="flex items-center gap-2 pt-4 border-t mt-4">
               <Users className="h-5 w-5 text-muted-foreground" />
               <p className="text-sm font-semibold">{t.competition.organizedBy}</p>

@@ -17,7 +17,7 @@ const USDT_ADDRESS = "0x14a634bf2d5be1c6ad7790d958e748174d8a2d43"
 
 interface PresalePurchaseProps {
   presaleContract: ethers.Contract | null
-  signer: ethers.Signer | null
+  walletClient: any
   isConnected: boolean
   isPresaleEnded: boolean
   tokenPrice: number
@@ -26,12 +26,40 @@ interface PresalePurchaseProps {
 
 export function PresalePurchase({
   presaleContract,
-  signer,
+  walletClient,
   isConnected,
   isPresaleEnded,
   tokenPrice,
   onPurchaseComplete,
 }: PresalePurchaseProps) {
+  // Convert walletClient to ethers signer
+  const [signer, setSigner] = useState<ethers.Signer | null>(null)
+
+  useEffect(() => {
+    const setupSigner = async () => {
+      if (walletClient) {
+        try {
+          const { account, chain, transport } = walletClient
+          const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+          }
+          const provider = new ethers.BrowserProvider(transport, network)
+          const ethersSigner = await provider.getSigner(account.address)
+          setSigner(ethersSigner)
+          console.log("[v0] Signer created successfully", { address: account.address })
+        } catch (error) {
+          console.error("[v0] Error creating signer:", error)
+          setSigner(null)
+        }
+      } else {
+        setSigner(null)
+      }
+    }
+
+    setupSigner()
+  }, [walletClient])
   const { toast } = useToast()
   const [purchaseTab, setPurchaseTab] = useState("chz")
 

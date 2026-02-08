@@ -37,7 +37,7 @@ function LaunchpadPage() {
   const { t } = useTranslation()
 
   const [presaleContract, setPresaleContract] = useState<ethers.Contract | null>(null)
-  // Removiendo provider y signer del estado ya que Wagmi los maneja internamente
+  const [signer, setSigner] = useState<ethers.Signer | null>(null)
   const [presaleStats, setPresaleStats] = useState({
     endTime: 0,
     totalTokens: 0,
@@ -57,6 +57,32 @@ function LaunchpadPage() {
 
   const PROGRESS_START = 30000000 // 30 million tokens
   const PROGRESS_TOTAL = 50000000 // 50 million tokens
+
+  // Create signer from walletClient
+  useEffect(() => {
+    const createSigner = async () => {
+      if (walletClient && account) {
+        try {
+          const { account: walletAccount, chain, transport } = walletClient
+          const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+          }
+          const provider = new ethers.BrowserProvider(transport, network)
+          const ethersSigner = await provider.getSigner(walletAccount.address)
+          setSigner(ethersSigner)
+        } catch (error) {
+          console.error("Error creating signer:", error)
+          setSigner(null)
+        }
+      } else {
+        setSigner(null)
+      }
+    }
+
+    createSigner()
+  }, [walletClient, account])
 
   useEffect(() => {
     const initContract = async () => {
@@ -129,7 +155,7 @@ function LaunchpadPage() {
           <div className="relative mb-8">
             <div className="absolute inset-0 bg-primary/5 shadow-2xl blur-xl"></div>
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-3HGJCRbhw7y7WB9MvgqiCHlI72OUmA.png"
+              src="/images/image.png"
               alt="FintSport Token"
               width={340}
               height={340}
@@ -232,8 +258,7 @@ function LaunchpadPage() {
             <TabsContent value="purchase">
               <PresalePurchase
                 presaleContract={presaleContract}
-                // Pasando walletClient en lugar de signer para compatibilidad con múltiples wallets
-                walletClient={walletClient}
+                signer={signer}
                 isConnected={isConnected}
                 isPresaleEnded={isPresaleEnded}
                 tokenPrice={presaleStats.tokenPrice}

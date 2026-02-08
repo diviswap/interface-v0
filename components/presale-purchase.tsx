@@ -17,7 +17,7 @@ const USDT_ADDRESS = "0x14a634bf2d5be1c6ad7790d958e748174d8a2d43"
 
 interface PresalePurchaseProps {
   presaleContract: ethers.Contract | null
-  walletClient: any
+  signer: ethers.Signer | null
   isConnected: boolean
   isPresaleEnded: boolean
   tokenPrice: number
@@ -26,40 +26,12 @@ interface PresalePurchaseProps {
 
 export function PresalePurchase({
   presaleContract,
-  walletClient,
+  signer,
   isConnected,
   isPresaleEnded,
   tokenPrice,
   onPurchaseComplete,
 }: PresalePurchaseProps) {
-  // Convert walletClient to ethers signer
-  const [signer, setSigner] = useState<ethers.Signer | null>(null)
-
-  useEffect(() => {
-    const setupSigner = async () => {
-      if (walletClient) {
-        try {
-          const { account, chain, transport } = walletClient
-          const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-          }
-          const provider = new ethers.BrowserProvider(transport, network)
-          const ethersSigner = await provider.getSigner(account.address)
-          setSigner(ethersSigner)
-          console.log("[v0] Signer created successfully", { address: account.address })
-        } catch (error) {
-          console.error("[v0] Error creating signer:", error)
-          setSigner(null)
-        }
-      } else {
-        setSigner(null)
-      }
-    }
-
-    setupSigner()
-  }, [walletClient])
   const { toast } = useToast()
   const [purchaseTab, setPurchaseTab] = useState("chz")
 
@@ -121,13 +93,6 @@ export function PresalePurchase({
   }, [tokenAmount, tokenPrice])
 
   const handleStablecoinPurchase = () => {
-    console.log("[v0] handleStablecoinPurchase clicked", {
-      isConnected,
-      hasSigner: !!signer,
-      hasContract: !!presaleContract,
-      tokenAmount,
-    })
-
     if (!isConnected || !signer || !presaleContract) {
       toast({
         title: "Error",
@@ -155,7 +120,6 @@ export function PresalePurchase({
       return
     }
 
-    console.log("[v0] Opening confirmation dialog")
     // Set confirmation details and open dialog
     setConfirmationDetails({
       paymentMethod: stablecoinType.toUpperCase(),
@@ -187,14 +151,6 @@ export function PresalePurchase({
         6, // USDC and USDT both use 6 decimals
       )
 
-      console.log("[v0] Starting stablecoin purchase:", {
-        tokenAmount,
-        tokenAmountWei: tokenAmountWei.toString(),
-        stablecoinAmount: stablecoinAmount.toString(),
-        stablecoinType,
-        tokenPrice,
-      })
-
       // First approve the presale contract to spend your stablecoins
       const stablecoinContract = new ethers.Contract(
         stablecoinAddress,
@@ -207,12 +163,10 @@ export function PresalePurchase({
 
       // Get presale contract address
       const presaleAddress = await presaleContract.getAddress()
-      console.log("[v0] Presale contract address:", presaleAddress)
 
       // Check current allowance first
       const userAddress = await signer.getAddress()
       const currentAllowance = await stablecoinContract.allowance(userAddress, presaleAddress)
-      console.log("[v0] Current allowance:", currentAllowance.toString())
 
       // Only approve if needed
       if (currentAllowance < stablecoinAmount) {
@@ -221,11 +175,9 @@ export function PresalePurchase({
           description: `Please confirm the transaction to approve ${stablecoinType.toUpperCase()} spending.`,
         })
 
-        console.log("[v0] Approving stablecoin spend...")
         // Approve the presale contract to spend the stablecoin
         const approveTx = await stablecoinContract.approve(presaleAddress, stablecoinAmount)
         await approveTx.wait()
-        console.log("[v0] Approval successful")
 
         toast({
           title: "Approval Successful",
@@ -236,7 +188,6 @@ export function PresalePurchase({
       // Connect signer to contract
       const contractWithSigner = presaleContract.connect(signer)
 
-      console.log("[v0] Executing purchase...")
       // Execute the purchase transaction
       const tx = await contractWithSigner.purchaseTokensWithStablecoin(
         tokenAmountWei,
@@ -244,7 +195,6 @@ export function PresalePurchase({
         { gasLimit: 500000 },
       )
 
-      console.log("[v0] Transaction submitted:", tx.hash)
       toast({
         title: "Transaction Submitted",
         description: "Your purchase transaction has been submitted. Please wait for confirmation.",
@@ -301,14 +251,6 @@ export function PresalePurchase({
   }
 
   const handleChzPurchase = () => {
-    console.log("[v0] handleChzPurchase clicked", {
-      isConnected,
-      hasSigner: !!signer,
-      hasContract: !!presaleContract,
-      chzAmount,
-      estimatedTokens,
-    })
-
     if (!isConnected || !signer || !presaleContract) {
       toast({
         title: "Error",
@@ -327,7 +269,6 @@ export function PresalePurchase({
       return
     }
 
-    console.log("[v0] Opening confirmation dialog")
     // Set confirmation details and open dialog
     setConfirmationDetails({
       paymentMethod: "CHZ",

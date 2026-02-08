@@ -92,7 +92,14 @@ export function PresalePurchase({
     setEstimatedCost(cost.toFixed(6))
   }, [tokenAmount, tokenPrice])
 
-  const handleStablecoinPurchase = async () => {
+  const handleStablecoinPurchase = () => {
+    console.log("[v0] handleStablecoinPurchase clicked", {
+      isConnected,
+      hasSigner: !!signer,
+      hasContract: !!presaleContract,
+      tokenAmount,
+    })
+
     if (!isConnected || !signer || !presaleContract) {
       toast({
         title: "Error",
@@ -120,6 +127,7 @@ export function PresalePurchase({
       return
     }
 
+    console.log("[v0] Opening confirmation dialog")
     // Set confirmation details and open dialog
     setConfirmationDetails({
       paymentMethod: stablecoinType.toUpperCase(),
@@ -264,7 +272,15 @@ export function PresalePurchase({
     }
   }
 
-  const handleChzPurchase = async () => {
+  const handleChzPurchase = () => {
+    console.log("[v0] handleChzPurchase clicked", {
+      isConnected,
+      hasSigner: !!signer,
+      hasContract: !!presaleContract,
+      chzAmount,
+      estimatedTokens,
+    })
+
     if (!isConnected || !signer || !presaleContract) {
       toast({
         title: "Error",
@@ -283,6 +299,7 @@ export function PresalePurchase({
       return
     }
 
+    console.log("[v0] Opening confirmation dialog")
     // Set confirmation details and open dialog
     setConfirmationDetails({
       paymentMethod: "CHZ",

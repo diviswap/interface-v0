@@ -5,18 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAccount, useBalance } from "wagmi"
-import {
-  Home,
-  ArrowLeftRight,
-  Droplets,
-  LineChart,
-  BookOpen,
-  Menu,
-  X,
-  MoreHorizontal,
-  Rocket,
-  Trophy,
-} from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, LineChart, BookOpen, Menu, X, MoreHorizontal, Rocket } from "lucide-react"
 import { ConnectWallet } from "@/components/connect-wallet-new"
 import { NavBar } from "@/components/ui/tubelight-navbar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -39,7 +28,6 @@ export function EnhancedNavbar() {
     { name: t.nav.home, url: "/", icon: Home },
     { name: t.nav.swap, url: "/swap", icon: ArrowLeftRight },
     { name: t.nav.pool, url: "/pool", icon: Droplets },
-    { name: t.nav.competition, url: "/competition", icon: Trophy },
     { name: t.nav.launchpad, url: "/launchpad", icon: Rocket },
     { name: t.nav.charts, url: "/charts", icon: LineChart },
     { name: t.nav.academy, url: "https://academy.diviswap.io", icon: BookOpen, external: true },

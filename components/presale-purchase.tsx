@@ -130,6 +130,15 @@ export function PresalePurchase({
   }
 
   const confirmStablecoinPurchase = async () => {
+    if (!presaleContract || !signer) {
+      toast({
+        title: "Error",
+        description: "Wallet not connected properly.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsPurchasing(true)
     setIsSuccess(false)
     try {
@@ -142,6 +151,14 @@ export function PresalePurchase({
         6, // USDC and USDT both use 6 decimals
       )
 
+      console.log("[v0] Starting stablecoin purchase:", {
+        tokenAmount,
+        tokenAmountWei: tokenAmountWei.toString(),
+        stablecoinAmount: stablecoinAmount.toString(),
+        stablecoinType,
+        tokenPrice,
+      })
+
       // First approve the presale contract to spend your stablecoins
       const stablecoinContract = new ethers.Contract(
         stablecoinAddress,
@@ -152,8 +169,14 @@ export function PresalePurchase({
         signer,
       )
 
+      // Get presale contract address
+      const presaleAddress = await presaleContract.getAddress()
+      console.log("[v0] Presale contract address:", presaleAddress)
+
       // Check current allowance first
-      const currentAllowance = await stablecoinContract.allowance(await signer.getAddress(), presaleContract.target)
+      const userAddress = await signer.getAddress()
+      const currentAllowance = await stablecoinContract.allowance(userAddress, presaleAddress)
+      console.log("[v0] Current allowance:", currentAllowance.toString())
 
       // Only approve if needed
       if (currentAllowance < stablecoinAmount) {
@@ -162,9 +185,11 @@ export function PresalePurchase({
           description: `Please confirm the transaction to approve ${stablecoinType.toUpperCase()} spending.`,
         })
 
+        console.log("[v0] Approving stablecoin spend...")
         // Approve the presale contract to spend the stablecoin
-        const approveTx = await stablecoinContract.approve(presaleContract.target, stablecoinAmount)
+        const approveTx = await stablecoinContract.approve(presaleAddress, stablecoinAmount)
         await approveTx.wait()
+        console.log("[v0] Approval successful")
 
         toast({
           title: "Approval Successful",
@@ -175,13 +200,7 @@ export function PresalePurchase({
       // Connect signer to contract
       const contractWithSigner = presaleContract.connect(signer)
 
-      // Log parameters for debugging
-      console.log("Purchase parameters:", {
-        tokenAmountWei: tokenAmountWei.toString(),
-        isUsdc: stablecoinType === "usdc",
-        contractAddress: presaleContract.target,
-      })
-
+      console.log("[v0] Executing purchase...")
       // Execute the purchase transaction
       const tx = await contractWithSigner.purchaseTokensWithStablecoin(
         tokenAmountWei,
@@ -189,6 +208,7 @@ export function PresalePurchase({
         { gasLimit: 500000 },
       )
 
+      console.log("[v0] Transaction submitted:", tx.hash)
       toast({
         title: "Transaction Submitted",
         description: "Your purchase transaction has been submitted. Please wait for confirmation.",
@@ -198,6 +218,7 @@ export function PresalePurchase({
       setSwapTxHash(tx.hash)
 
       await tx.wait()
+      console.log("[v0] Transaction confirmed")
 
       // Set success state
       setIsSuccess(true)
@@ -206,27 +227,35 @@ export function PresalePurchase({
         try {
           await onPurchaseComplete()
         } catch (error) {
-          console.error("Error updating statistics after purchase:", error)
+          console.error("[v0] Error updating statistics after purchase:", error)
         }
       }
 
       toast({
         title: "Purchase Successful",
         description: `You have successfully purchased ${formatCurrency(Number(tokenAmount))} FTK tokens.`,
-        variant: "success",
       })
 
       // Reset form after dialog is closed
-    } catch (error) {
-      console.error("Error purchasing tokens:", error)
+    } catch (error: any) {
+      console.error("[v0] Error purchasing tokens:", error)
       // Log more detailed error information
-      if (error.reason) console.error("Error reason:", error.reason)
-      if (error.code) console.error("Error code:", error.code)
-      if (error.data) console.error("Error data:", error.data)
+      if (error.reason) console.error("[v0] Error reason:", error.reason)
+      if (error.code) console.error("[v0] Error code:", error.code)
+      if (error.data) console.error("[v0] Error data:", error.data)
+      if (error.message) console.error("[v0] Error message:", error.message)
+
+      let errorMessage = "There was an error processing your purchase. Please try again."
+      
+      if (error.reason) {
+        errorMessage = error.reason
+      } else if (error.message) {
+        errorMessage = error.message
+      }
 
       toast({
         title: "Purchase Failed",
-        description: "There was an error processing your purchase. Please check console for details and try again.",
+        description: errorMessage,
         variant: "destructive",
       })
       setIsConfirmationOpen(false)
@@ -264,17 +293,34 @@ export function PresalePurchase({
   }
 
   const confirmChzPurchase = async () => {
+    if (!presaleContract || !signer) {
+      toast({
+        title: "Error",
+        description: "Wallet not connected properly.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsPurchasing(true)
     setIsSuccess(false)
     try {
       const chzAmountWei = ethers.parseEther(chzAmount)
+      console.log("[v0] Starting CHZ purchase:", {
+        chzAmount,
+        chzAmountWei: chzAmountWei.toString(),
+        estimatedTokens,
+      })
+
       const contractWithSigner = presaleContract.connect(signer)
 
+      console.log("[v0] Executing CHZ purchase...")
       const tx = await contractWithSigner.purchaseTokens({
         value: chzAmountWei,
         gasLimit: 500000,
       })
 
+      console.log("[v0] Transaction submitted:", tx.hash)
       toast({
         title: "Transaction Submitted",
         description: "Your purchase transaction has been submitted. Please wait for confirmation.",
@@ -284,6 +330,7 @@ export function PresalePurchase({
       setSwapTxHash(tx.hash)
 
       await tx.wait()
+      console.log("[v0] Transaction confirmed")
 
       // Set success state
       setIsSuccess(true)
@@ -292,22 +339,33 @@ export function PresalePurchase({
         try {
           await onPurchaseComplete()
         } catch (error) {
-          console.error("Error updating statistics after purchase:", error)
+          console.error("[v0] Error updating statistics after purchase:", error)
         }
       }
 
       toast({
         title: "Purchase Successful",
         description: `You have successfully purchased approximately ${formatCurrency(Number(estimatedTokens))} FTK tokens.`,
-        variant: "success",
       })
 
       // Reset form after dialog is closed
-    } catch (error) {
-      console.error("Error purchasing tokens:", error)
+    } catch (error: any) {
+      console.error("[v0] Error purchasing tokens:", error)
+      if (error.reason) console.error("[v0] Error reason:", error.reason)
+      if (error.code) console.error("[v0] Error code:", error.code)
+      if (error.message) console.error("[v0] Error message:", error.message)
+
+      let errorMessage = "There was an error processing your purchase. Please try again."
+      
+      if (error.reason) {
+        errorMessage = error.reason
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
       toast({
         title: "Purchase Failed",
-        description: "There was an error processing your purchase. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
       setIsConfirmationOpen(false)

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/components/web3-provider"
-import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket, FileText, Trophy } from "lucide-react"
+import { Home, ArrowLeftRight, Droplets, Menu, X, LineChart, BookOpen, Rocket, FileText } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { WalletButton } from "@/components/wallet-button"
 import { cn } from "@/lib/utils"
@@ -25,7 +25,6 @@ export function Navbar() {
     { name: t.nav.swap, path: "/swap", icon: ArrowLeftRight },
     { name: t.nav.pool, path: "/pool", icon: Droplets },
     { name: t.nav.charts, path: "/charts", icon: LineChart },
-    { name: t.nav.competition, path: "/competition", icon: Trophy },
     { name: t.nav.launchpad, path: "/launchpad", icon: Rocket },
     { name: "Docs", path: "/docs", icon: FileText },
     { name: t.nav.academy, href: "https://academy.diviswap.io", icon: BookOpen, external: true },

@@ -411,7 +411,15 @@ export default function PoolPageClient() {
 
   const handleAddLiquidityClick = () => {
     setActiveTab("add")
+    setInnerTab("add")
     router.push("/pool?tab=add")
+  }
+
+  const handleRemoveLiquidity = (pairAddress: string) => {
+    setActiveTab("add")
+    setInnerTab("remove")
+    setInitialPairAddress(pairAddress)
+    router.push(`/pool?remove=true&pair=${pairAddress}`, { scroll: false })
   }
 
   const handleAddLiquidity = async (tokenA, tokenB, amountA, amountB) => {
@@ -484,7 +492,7 @@ export default function PoolPageClient() {
               ) : (
                 <div className="grid gap-4">
                   {userPools.map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} />
+                    <PoolCard key={pool.id} pool={pool} onRemove={handleRemoveLiquidity} />
                   ))}
                 </div>
               )}

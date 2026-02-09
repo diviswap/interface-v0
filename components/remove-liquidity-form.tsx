@@ -35,10 +35,10 @@ export function RemoveLiquidityForm({ pools, initialPairAddress }: RemoveLiquidi
   const getSigner = async () => {
     if (!walletClient) return null
     try {
-      const provider = new ethers.BrowserProvider(walletClient.transport)
+      const provider = new ethers.BrowserProvider(walletClient as any)
       return await provider.getSigner()
     } catch (error) {
-      console.error("Error getting signer:", error)
+      console.error("[v0] Error getting signer:", error)
       return null
     }
   }

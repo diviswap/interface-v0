@@ -23,13 +23,18 @@ interface PresaleStatsProps {
 }
 
 export function PresaleStats({ presaleStats, userInfo, isConnected }: PresaleStatsProps) {
-  // Calculate total raised in USD
-  const totalRaised = presaleStats.soldTokens * presaleStats.tokenPrice
+  const PROGRESS_START = 30000000 // 30 million tokens already sold
+  const PROGRESS_TOTAL = 50000000 // 50 million tokens total
+  const currentTokensSold = PROGRESS_START + presaleStats.soldTokens
+  const actualRemainingTokens = PROGRESS_TOTAL - currentTokensSold
+
+  // Calculate total raised in USD based on current sold tokens
+  const totalRaised = currentTokensSold * presaleStats.tokenPrice
 
   // Data for token distribution chart
   const tokenDistributionData = [
-    { name: "Sold", value: presaleStats.soldTokens },
-    { name: "Remaining", value: presaleStats.remainingTokens },
+    { name: "Sold", value: currentTokensSold },
+    { name: "Remaining", value: actualRemainingTokens },
   ]
 
   // Colors for the chart
@@ -47,7 +52,7 @@ export function PresaleStats({ presaleStats, userInfo, isConnected }: PresaleSta
                   <CardTitle className="text-sm">Total Tokens</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold">{formatCurrency(presaleStats.totalTokens)} FTK</p>
+                  <p className="text-xl font-bold">{formatCurrency(PROGRESS_TOTAL)} FTK</p>
                 </CardContent>
               </Card>
               <Card className="bg-card/50">
@@ -55,7 +60,7 @@ export function PresaleStats({ presaleStats, userInfo, isConnected }: PresaleSta
                   <CardTitle className="text-sm">Tokens Sold</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold">{formatCurrency(presaleStats.soldTokens)} FTK</p>
+                  <p className="text-xl font-bold">{formatCurrency(currentTokensSold)} FTK</p>
                 </CardContent>
               </Card>
               <Card className="bg-card/50">

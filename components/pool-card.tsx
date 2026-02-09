@@ -1,4 +1,7 @@
+"use client"
+
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
@@ -6,9 +9,11 @@ import Link from "next/link"
 
 interface PoolCardProps {
   pool: any
+  onRemove?: (pairAddress: string) => void
 }
 
-function PoolCard({ pool }: PoolCardProps) {
+function PoolCard({ pool, onRemove }: PoolCardProps) {
+  const router = useRouter()
   return (
     <Card className="overflow-hidden bg-card/50 backdrop-blur-sm border border-primary/10 hover:border-primary/20 transition-all duration-200">
       <CardHeader className="pb-2">
@@ -125,12 +130,17 @@ function PoolCard({ pool }: PoolCardProps) {
               <Link href={`/pool?tab=add&token0=${pool.token0.address}&token1=${pool.token1.address}`}>Add</Link>
             </Button>
             <Button
-              asChild
               variant="outline"
               className="flex-1 border-primary text-primary hover:bg-primary/10 bg-transparent"
+              onClick={() => {
+                if (onRemove) {
+                  onRemove(pool.id)
+                } else {
+                  router.push(`/pool?remove=true&pair=${pool.id}`)
+                }
+              }}
             >
-              {/* Fixed URL to use remove=true parameter correctly */}
-              <Link href={`/pool?tab=remove&pair=${pool.id}`}>Remove</Link>
+              Remove
             </Button>
           </div>
         </div>

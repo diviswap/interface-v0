@@ -213,7 +213,12 @@ export function RemoveLiquidityForm({ pools, initialPairAddress }: RemoveLiquidi
 
   const handleAmountChange = (value: string) => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
-      setAmount(value)
+      // Validate the value doesn't exceed max liquidity
+      if (value && Number(value) > Number(maxLiquidity) && Number(maxLiquidity) > 0) {
+        setAmount(maxLiquidity)
+      } else {
+        setAmount(value)
+      }
       if (value !== lastAmountRef.current) {
         setIsApproved(false)
       }
@@ -289,8 +294,13 @@ export function RemoveLiquidityForm({ pools, initialPairAddress }: RemoveLiquidi
       const liquidityAmount = ethers.parseUnits(amount, 18)
 
       // Calculate minimum amounts (with 1% slippage)
-      const expectedAmount0Wei = ethers.parseUnits(expectedToken0, selectedPool.token0.decimals)
-      const expectedAmount1Wei = ethers.parseUnits(expectedToken1, selectedPool.token1.decimals)
+      // Truncate expected values to avoid too many decimal places for parseUnits
+      const decimals0 = Number(selectedPool.token0.decimals)
+      const decimals1 = Number(selectedPool.token1.decimals)
+      const truncated0 = Number(expectedToken0).toFixed(decimals0)
+      const truncated1 = Number(expectedToken1).toFixed(decimals1)
+      const expectedAmount0Wei = ethers.parseUnits(truncated0, decimals0)
+      const expectedAmount1Wei = ethers.parseUnits(truncated1, decimals1)
       const amount0Min = (expectedAmount0Wei * BigInt(99)) / BigInt(100)
       const amount1Min = (expectedAmount1Wei * BigInt(99)) / BigInt(100)
 

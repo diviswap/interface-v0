@@ -129,8 +129,7 @@ function PoolCard({ pool }: PoolCardProps) {
               variant="outline"
               className="flex-1 border-primary text-primary hover:bg-primary/10 bg-transparent"
             >
-              {/* Fixed URL to use remove=true parameter correctly */}
-              <Link href={`/pool?tab=remove&pair=${pool.id}`}>Remove</Link>
+              <Link href={`/pool?tab=add&remove=true&pair=${pool.id}`}>Remove</Link>
             </Button>
           </div>
         </div>

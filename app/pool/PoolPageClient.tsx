@@ -48,25 +48,29 @@ export default function PoolPageClient() {
     token1: null,
   })
   const [initialPairAddress, setInitialPairAddress] = useState<string | null>(null)
-  const hasInitialized = useRef(false)
+  const [innerTab, setInnerTab] = useState<"add" | "remove">("add")
 
-  // Stabilize handleSearchParams to prevent unnecessary recreations
-  const handleSearchParams = useCallback(() => {
+  // Track previous search params to detect real changes
+  const prevSearchParamsRef = useRef<string>("")
+
+  // Handle search params - runs on every searchParams change to support in-app navigation
+  useEffect(() => {
+    const currentParamsStr = searchParams.toString()
+    // Skip if params haven't changed
+    if (currentParamsStr === prevSearchParamsRef.current) return
+    prevSearchParamsRef.current = currentParamsStr
+
     const tab = searchParams.get("tab")
     const token0 = searchParams.get("token0")
     const token1 = searchParams.get("token1")
-    // Added handling for remove and pair parameters
     const remove = searchParams.get("remove")
     const pair = searchParams.get("pair")
 
     // Handle remove parameter to switch to add tab and set remove mode
     if (remove === "true" && pair) {
       setActiveTab("add")
+      setInnerTab("remove")
       setInitialPairAddress(pair)
-      // Clear the remove parameter from URL after handling
-      setTimeout(() => {
-        router.push("/pool?tab=add")
-      }, 100)
       return
     }
 
@@ -76,19 +80,9 @@ export default function PoolPageClient() {
 
     if (token0 && token1) {
       setInitialTokens({ token0, token1 })
-      setTimeout(() => {
-        router.push("/pool?tab=add")
-      }, 100)
+      setActiveTab("add")
     }
-  }, [searchParams, router])
-
-  // Only run handleSearchParams when searchParams actually changes
-  useEffect(() => {
-    if (!hasInitialized.current) {
-      handleSearchParams()
-      hasInitialized.current = true
-    }
-  }, [handleSearchParams])
+  }, [searchParams])
 
   // Stabilize fetchUserPools with proper dependencies and prevent unnecessary recreations
   const fetchUserPools = useCallback(async () => {
@@ -401,9 +395,9 @@ export default function PoolPageClient() {
     }
   }, [provider, toast])
 
-  // Only fetch user pools when dependencies actually change
+  // Fetch user pools when on positions tab OR add tab (needed for remove liquidity form)
   useEffect(() => {
-    if (isConnected && provider && account && activeTab === "positions") {
+    if (isConnected && provider && account && (activeTab === "positions" || activeTab === "add")) {
       fetchUserPools()
     }
   }, [isConnected, account, fetchUserPools, activeTab])
@@ -525,7 +519,7 @@ export default function PoolPageClient() {
             </TabsContent>
 
             <TabsContent value="add" className="space-y-4">
-              <Tabs defaultValue={searchParams.get("remove") === "true" ? "remove" : "add"}>
+              <Tabs value={innerTab} onValueChange={(v) => setInnerTab(v as "add" | "remove")}>
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger
                     value="add"

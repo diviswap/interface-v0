@@ -7,7 +7,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { BackgroundWrapper } from "@/components/background-wrapper"
 import { Github, MessageCircle } from 'lucide-react'
 import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import { I18nProvider, useTranslation } from "@/lib/i18n/context"
@@ -131,7 +130,6 @@ export default function ClientLayout({
               </ClientOnly>
             </Suspense>
             <Analytics />
-            <SpeedInsights />
           </I18nProvider>
         </ThemeProvider>
       </body>

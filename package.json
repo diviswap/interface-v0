@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "lint": "next lint",
+    "lint": "eslint .",
     "start": "next start"
   },
   "dependencies": {
@@ -50,6 +50,7 @@
     "@tanstack/react-query": "^5.45.1",
     "@uniswap/sdk": "3.0.3",
     "@vercel/analytics": "1.5.0",
+    "@vercel/speed-insights": "2.0.0",
     "@web3-react/core": "^8.2.3",
     "@web3-react/metamask": "^8.2.3",
     "@web3-react/walletconnect-v2": "^8.2.3",
@@ -62,6 +63,7 @@
     "lucide-react": "^0.395.0",
     "next": "14.2.4",
     "next-themes": "^0.3.0",
+    "nuxt": "latest",
     "ox": "^0.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -70,6 +72,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "viem": "^2.16.0",
+    "vue-router": "latest",
     "wagmi": "^2.10.0"
   },
   "devDependencies": {

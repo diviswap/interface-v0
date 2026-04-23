@@ -2,9 +2,15 @@
 
 import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { ChevronDown, Wallet, ExternalLink, Copy, Check, CheckCircle } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { ChevronDown, Wallet, ExternalLink, Copy, Check, CheckCircle2 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { createAvatar } from "@dicebear/core"
 import { identicon } from "@dicebear/collection"
@@ -16,33 +22,20 @@ export function ConnectWallet() {
   const { address, isConnected } = useAccount()
   const { connectors, connect } = useConnect()
   const { disconnect } = useDisconnect()
-  const { data: balance, isLoading } = useBalance({
-    address,
-  })
+  const { data: balance, isLoading } = useBalance({ address })
   const [copied, setCopied] = useState(false)
   const [detectedWallets, setDetectedWallets] = useState<Set<string>>(new Set())
+  const [selectorOpen, setSelectorOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const { t } = useTranslation()
 
   useEffect(() => {
     const detected = new Set<string>()
 
     if (typeof window !== "undefined") {
-      // Check for MetaMask
-      if (window.ethereum?.isMetaMask) {
-        detected.add("MetaMask")
-      }
-
-      // Check for OKX Wallet
-      if ((window as any).okxwallet) {
-        detected.add("OKX Wallet")
-      }
-
-      // Check for Binance Wallet
-      if ((window as any).BinanceChain) {
-        detected.add("Binance Wallet")
-      }
-
-      // WalletConnect and Socios are always available (they don't need to be "installed")
+      if (window.ethereum?.isMetaMask) detected.add("MetaMask")
+      if ((window as any).okxwallet) detected.add("OKX Wallet")
+      if ((window as any).BinanceChain) detected.add("Binance Wallet")
       detected.add("WalletConnect")
       detected.add("Socios.com")
     }
@@ -52,10 +45,7 @@ export function ConnectWallet() {
 
   const avatarSvg = useMemo(() => {
     if (!address) return null
-    const avatar = createAvatar(identicon, {
-      seed: address,
-      size: 32,
-    })
+    const avatar = createAvatar(identicon, { seed: address, size: 32 })
     const svgString = avatar.toString()
     const base64Svg = btoa(
       encodeURIComponent(svgString).replace(/%([0-9A-F]{2})/g, (match, p1) =>
@@ -72,7 +62,7 @@ export function ConnectWallet() {
       setCopied(true)
       toast.success(t.common.addressCopied)
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
+    } catch {
       toast.error(t.common.failedToCopy)
     }
   }
@@ -109,19 +99,18 @@ export function ConnectWallet() {
     }
 
     if (name.includes("walletconnect")) {
-      // Check if this is the Socios.com specific connector
       if (connectorName.includes("Socios")) {
         return {
           name: "Socios.com",
           description: t.common.walletDescriptions.socios,
-          detected: true, // Always available
+          detected: true,
           icon: "/images/wallets/socios.png",
         }
       }
       return {
         name: "WalletConnect",
         description: t.common.walletDescriptions.walletconnect,
-        detected: true, // Always available
+        detected: true,
         icon: "/images/wallets/walletconnect.png",
       }
     }
@@ -134,22 +123,18 @@ export function ConnectWallet() {
     }
   }
 
-  // Creando función para obtener conectores únicos incluyendo Socios.com como opción separada
   const getUniqueConnectors = () => {
     const walletOrder = ["MetaMask", "WalletConnect", "OKX Wallet", "Socios.com", "Binance Wallet"]
     const walletMap = new Map()
 
-    // Agregar conectores regulares
     for (const connector of connectors) {
       const walletInfo = getWalletInfo(connector.name, connector.id)
       const key = walletInfo.name
-
       if (walletOrder.includes(key) && !walletMap.has(key)) {
         walletMap.set(key, { connector, walletInfo })
       }
     }
 
-    // Agregar Socios.com como opción separada usando el conector de WalletConnect
     const walletConnectConnector = connectors.find((c) => c.name.toLowerCase().includes("walletconnect"))
     if (walletConnectConnector && !walletMap.has("Socios.com")) {
       walletMap.set("Socios.com", {
@@ -157,15 +142,14 @@ export function ConnectWallet() {
         walletInfo: {
           name: "Socios.com",
           description: t.common.walletDescriptions.socios,
-          detected: true, // Always available
+          detected: true,
           icon: "/images/wallets/socios.png",
         },
       })
     }
 
-    const orderedWallets = []
-    const detectedFirst = []
-    const notDetected = []
+    const detectedFirst: any[] = []
+    const notDetected: any[] = []
 
     for (const walletName of walletOrder) {
       const wallet = walletMap.get(walletName)
@@ -181,35 +165,45 @@ export function ConnectWallet() {
     return [...detectedFirst, ...notDetected]
   }
 
+  // Connected state: compact pill + account dialog
   if (isConnected) {
     return (
-      <Dialog>
+      <Dialog open={accountOpen} onOpenChange={setAccountOpen}>
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="flex items-center gap-2 rounded-xl bg-card/50 backdrop-blur-sm border-border hover:bg-card/80 px-3 py-2 h-auto transition-all duration-300"
+            className="group flex items-center gap-2 rounded-full border-border/50 bg-card/50 pl-1.5 pr-3 py-1.5 h-10 hover:border-primary/40 hover:bg-card/70 transition-all"
           >
             {avatarSvg && (
-              <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+              <Avatar className="h-7 w-7 ring-1 ring-primary/30 transition-all group-hover:ring-primary/50">
                 <img src={avatarSvg || "/placeholder.svg"} alt="Wallet Avatar" />
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                   {address?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-xs font-mono text-muted-foreground leading-tight truncate">
-                {`${address?.slice(0, 6)}...${address?.slice(-4)}`}
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-mono text-foreground/90">
+                {`${address?.slice(0, 4)}...${address?.slice(-4)}`}
               </span>
             </div>
-            <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200" />
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-md mx-auto bg-popover border-border shadow-2xl backdrop-blur-md">
-          <div className="px-3 py-2 border-b border-border mb-4">
-            <div className="flex items-center gap-3">
+        <DialogContent className="w-[95vw] max-w-md mx-auto glass-panel-strong border-border/60 p-0 overflow-hidden">
+          {/* Header with glow */}
+          <div className="relative p-6 border-b border-border/40">
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-0 opacity-40"
+              style={{
+                background:
+                  "radial-gradient(400px circle at 50% 0%, hsl(var(--primary) / 0.18), transparent 60%)",
+              }}
+            />
+            <div className="relative flex items-center gap-4">
               {avatarSvg && (
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-primary/30">
+                <Avatar className="h-14 w-14 ring-2 ring-primary/40 shadow-lg shadow-primary/20">
                   <img src={avatarSvg || "/placeholder.svg"} alt="Wallet Avatar" />
                   <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                     {address?.slice(0, 2).toUpperCase()}
@@ -217,43 +211,56 @@ export function ConnectWallet() {
                 </Avatar>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-base sm:text-lg font-semibold text-primary">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t.common.balance ?? "Balance"}
+                </div>
+                <div className="text-2xl font-bold text-foreground">
                   {isLoading
                     ? t.common.loading
-                    : `${balance ? Number.parseFloat(balance.formatted).toFixed(6) : "0.000000"} ${balance?.symbol || "CHZ"}`}
+                    : `${balance ? Number.parseFloat(balance.formatted).toFixed(4) : "0.0000"}`}
+                  <span className="ml-1 text-base font-medium text-primary">
+                    {balance?.symbol || "CHZ"}
+                  </span>
                 </div>
-                <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{address}</div>
+                <div className="mt-1 text-xs text-muted-foreground font-mono truncate">{address}</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="p-3 space-y-1">
             <Button
               onClick={copyAddress}
               variant="ghost"
-              className="w-full justify-start hover:bg-accent text-foreground rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start h-11 rounded-xl hover:bg-primary/10 hover:text-primary"
             >
-              {copied ? <Check className="h-4 w-4 text-primary mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              {copied ? (
+                <Check className="h-4 w-4 mr-3 text-primary" />
+              ) : (
+                <Copy className="h-4 w-4 mr-3" />
+              )}
               {copied ? t.common.copied : t.common.copyAddress}
             </Button>
 
             <Button
               onClick={() => window.open(`https://scan.chiliz.com/address/${address}`, "_blank")}
               variant="ghost"
-              className="w-full justify-start hover:bg-accent text-foreground rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start h-11 rounded-xl hover:bg-primary/10 hover:text-primary"
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
+              <ExternalLink className="h-4 w-4 mr-3" />
               {t.common.viewOnExplorer}
             </Button>
 
-            <div className="h-px bg-border my-4" />
+            <div className="h-px bg-border/40 my-2" />
 
             <Button
-              onClick={() => disconnect()}
+              onClick={() => {
+                disconnect()
+                setAccountOpen(false)
+              }}
               variant="ghost"
-              className="w-full justify-start hover:bg-destructive/10 text-destructive hover:text-destructive rounded-lg transition-colors duration-200 h-12"
+              className="w-full justify-start h-11 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              <Wallet className="h-4 w-4 mr-2" />
+              <Wallet className="h-4 w-4 mr-3" />
               {t.common.disconnect}
             </Button>
           </div>
@@ -262,66 +269,85 @@ export function ConnectWallet() {
     )
   }
 
-  // Reemplazando Dialog con DropdownMenu para un diseño más profesional
+  // Not connected: CTA + wallet selector dialog
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 sm:px-6 py-2.5 h-auto transition-all duration-300 shadow-lg hover:shadow-xl border-0 text-sm sm:text-base">
+    <Dialog open={selectorOpen} onOpenChange={setSelectorOpen}>
+      <DialogTrigger asChild>
+        <Button className="group rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 sm:px-5 h-10 text-sm transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 border-0">
           <Wallet className="w-4 h-4 mr-2" />
           <span className="hidden xs:inline">{t.common.connectWallet}</span>
           <span className="xs:hidden">{t.common.connect}</span>
-          <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-80 p-2 bg-popover border-border shadow-2xl backdrop-blur-md"
-        align="end"
-        sideOffset={8}
-      >
-        <div className="px-3 py-2 border-b border-border mb-2">
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-primary" />
-            {t.common.connectWallet}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">{t.common.chooseWallet}</p>
+      </DialogTrigger>
+      <DialogContent className="w-[95vw] max-w-md mx-auto glass-panel-strong border-border/60 p-0 overflow-hidden">
+        <div className="relative p-6 border-b border-border/40">
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-0 opacity-40"
+            style={{
+              background:
+                "radial-gradient(400px circle at 50% 0%, hsl(var(--primary) / 0.18), transparent 60%)",
+            }}
+          />
+          <DialogHeader className="relative space-y-1">
+            <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/30">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-xl">{t.common.connectWallet}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {t.common.chooseWallet}
+            </DialogDescription>
+          </DialogHeader>
         </div>
 
-        {getUniqueConnectors().map(({ connector, walletInfo }) => (
-          <DropdownMenuItem
-            key={`${connector.uid}-${walletInfo.name}`}
-            onClick={() => connect({ connector })}
-            className="p-3 cursor-pointer hover:bg-accent rounded-lg transition-all duration-200 focus:bg-accent"
-          >
-            <div className="flex items-center gap-3 w-full">
-              <img
-                src={walletInfo.icon || "/placeholder.svg"}
-                alt={walletInfo.name}
-                className="w-8 h-8 object-contain flex-shrink-0"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = "/placeholder.svg"
-                }}
-              />
+        <div className="p-3 space-y-1.5 max-h-[60vh] overflow-y-auto">
+          {getUniqueConnectors().map(({ connector, walletInfo }) => (
+            <button
+              key={`${connector.uid}-${walletInfo.name}`}
+              onClick={() => {
+                connect({ connector })
+                setSelectorOpen(false)
+              }}
+              className="group w-full flex items-center gap-3 p-3 rounded-xl border border-transparent bg-background/30 hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
+            >
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-card ring-1 ring-border/50 overflow-hidden">
+                <img
+                  src={walletInfo.icon || "/placeholder.svg"}
+                  alt={walletInfo.name}
+                  className="h-8 w-8 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = "/placeholder.svg"
+                  }}
+                />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground text-sm truncate">{walletInfo.name}</span>
+                  <span className="font-semibold text-foreground text-sm truncate">
+                    {walletInfo.name}
+                  </span>
                   {walletInfo.detected && (
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-500 font-medium">Detected</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/20">
+                      <CheckCircle2 className="h-2.5 w-2.5" />
+                      {t.common.detected ?? "Detected"}
+                    </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">{walletInfo.description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                  {walletInfo.description}
+                </p>
               </div>
-            </div>
-          </DropdownMenuItem>
-        ))}
-
-        <div className="px-3 py-2 mt-2 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center leading-relaxed">{t.common.termsAgreement}</p>
+              <ChevronDown className="h-4 w-4 -rotate-90 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+            </button>
+          ))}
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+        <div className="px-6 py-3 border-t border-border/40">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed">
+            {t.common.termsAgreement}
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

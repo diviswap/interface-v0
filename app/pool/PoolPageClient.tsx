@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAccount, usePublicClient } from "wagmi"
 import { ethers } from "ethers"
-import { RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search, Droplets } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -442,27 +442,36 @@ export default function PoolPageClient() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-4xl font-bold mb-8 text-center">{t.pool.title}</h1>
-      <Card className="bg-card/50 backdrop-blur-sm border-2 border-primary/10">
-        <CardContent className="p-6">
+      <div aria-hidden className="absolute inset-x-0 top-16 -z-10 h-[500px] hero-radial pointer-events-none" />
+
+      <div className="flex flex-col items-center text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+          <span className="text-gradient-primary">{t.pool.title}</span>
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-lg">
+          {t.pool.subtitle ?? "Add liquidity to earn trading fees and manage your positions."}
+        </p>
+      </div>
+
+      <Card className="glass-panel-strong border-border/40">
+        <CardContent className="p-5 sm:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Made tabs responsive - vertical stack on mobile, grid on desktop */}
-            <TabsList className="flex flex-col w-full gap-1 h-auto p-1 md:grid md:grid-cols-3 md:h-10 mb-6">
+            <TabsList className="flex w-full gap-1 h-auto p-1 rounded-full border border-border/50 bg-background/40 mb-6 overflow-x-auto">
               <TabsTrigger
                 value="positions"
-                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="flex-1 min-w-max rounded-full px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
               >
                 {t.pool.yourLiquidityPositions}
               </TabsTrigger>
               <TabsTrigger
                 value="all-pools"
-                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="flex-1 min-w-max rounded-full px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
               >
                 {t.pool.allPools}
               </TabsTrigger>
               <TabsTrigger
                 value="add"
-                className="w-full justify-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="flex-1 min-w-max rounded-full px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
               >
                 {t.pool.addLiquidity}
               </TabsTrigger>
@@ -470,22 +479,28 @@ export default function PoolPageClient() {
 
             <TabsContent value="positions" className="space-y-4">
               {!isConnected ? (
-                <div className="text-center py-8">
-                  <p className="text-lg mb-4">{t.pool.connectWalletToView}</p>
-                  {/* Replaced old button with new ConnectWallet component */}
+                <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/30">
+                    <Droplets className="h-6 w-6" />
+                  </div>
+                  <p className="text-base text-muted-foreground max-w-sm">{t.pool.connectWalletToView}</p>
                   <ConnectWallet />
                 </div>
               ) : isLoading ? (
-                <div className="flex justify-center py-8">
+                <div className="flex justify-center py-14">
                   <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : userPools.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-lg mb-4">{t.pool.noLiquidityPositions}</p>
+                <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/30">
+                    <Droplets className="h-6 w-6" />
+                  </div>
+                  <p className="text-base text-muted-foreground max-w-sm">{t.pool.noLiquidityPositions}</p>
                   <Button
                     onClick={handleAddLiquidityClick}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="h-11 rounded-full px-6 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 hover:shadow-primary/40"
                   >
+                    <Droplets className="mr-2 h-4 w-4" />
                     {t.pool.addLiquidity}
                   </Button>
                 </div>
@@ -499,23 +514,28 @@ export default function PoolPageClient() {
             </TabsContent>
 
             <TabsContent value="all-pools" className="space-y-4">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder={t.pool.searchPools}
-                  className="pl-10 bg-background/50 backdrop-blur-sm"
+                  className="pl-10 h-11 rounded-full bg-background/40 border-border/50 focus-visible:border-primary/50 focus-visible:ring-primary/20"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
 
               {isLoadingAllPools ? (
-                <div className="flex justify-center py-8">
+                <div className="flex justify-center py-14">
                   <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : filteredAllPools.length === 0 ? (
-                <div className="text-center py-8">
-                  {searchTerm ? <p>{t.pool.poolNotFound}</p> : <p>{t.pool.noLiquidityFound}</p>}
+                <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground ring-1 ring-border/50">
+                    <Search className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {searchTerm ? t.pool.poolNotFound : t.pool.noLiquidityFound}
+                  </p>
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -528,16 +548,16 @@ export default function PoolPageClient() {
 
             <TabsContent value="add" className="space-y-4">
               <Tabs value={innerTab} onValueChange={(v) => setInnerTab(v as "add" | "remove")}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsList className="grid w-full grid-cols-2 gap-1 p-1 rounded-full border border-border/50 bg-background/40 mb-5 h-auto">
                   <TabsTrigger
                     value="add"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="rounded-full py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
                   >
                     {t.pool.add}
                   </TabsTrigger>
                   <TabsTrigger
                     value="remove"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="rounded-full py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
                   >
                     {t.pool.remove}
                   </TabsTrigger>

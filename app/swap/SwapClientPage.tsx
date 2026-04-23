@@ -778,24 +778,35 @@ function SwapPage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-12">
+    <div className="container max-w-xl mx-auto px-4 py-8 md:py-12">
+      {/* Ambient glow */}
+      <div aria-hidden className="absolute inset-x-0 top-16 -z-10 h-[500px] hero-radial pointer-events-none" />
+
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col items-center justify-center mb-6">
-          <h1 className="text-4xl font-bold text-white text-center">{t.swap.title}</h1>
+        <div className="flex flex-col items-center justify-center text-center mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <span className="text-gradient-primary">{t.swap.title}</span>
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t.swap.tradeDescription}</p>
         </div>
 
-        <Card className="overflow-hidden border-2 border-primary/10 bg-gradient-to-b from-background to-background/50 shadow-xl">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-lg text-white">{t.swap.tradeDescription}</p>
+        <Card className="overflow-hidden glass-panel-strong border-border/40 shadow-2xl">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex justify-between items-center mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/40 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="text-xs font-medium text-muted-foreground">
+                  {slippage}% {t.swap.slippage ?? "slippage"}
+                </span>
+              </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
                       onClick={() => setIsSettingsOpen(true)}
-                      className="rounded-full h-8 w-8 bg-secondary hover:bg-secondary/80"
+                      className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary"
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -807,20 +818,21 @@ function SwapPage() {
               </TooltipProvider>
             </div>
 
-            <div className="space-y-2 sm:space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <Label htmlFor="from-amount" className="text-sm font-medium text-primary mb-1 sm:mb-0">
+            {/* FROM */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <Label htmlFor="from-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.swap.from}
                 </Label>
                 {account && fromToken && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>
-                      {t.swap.balance}: {formatCurrency(Number(fromBalance))}
+                      {t.swap.balance}: <span className="text-foreground/80">{formatCurrency(Number(fromBalance))}</span>
                     </span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs text-primary hover:text-primary/80 hover:bg-primary/10"
+                      className="h-6 px-2 rounded-md text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 hover:bg-primary/20 hover:text-primary"
                       onClick={() => setFromAmount(fromBalance)}
                     >
                       MAX
@@ -829,15 +841,15 @@ function SwapPage() {
                 )}
               </div>
 
-              <div className="rounded-xl bg-secondary p-3 sm:p-4 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+              <div className="rounded-2xl border border-border/40 bg-background/40 p-4 transition-all focus-within:border-primary/50 focus-within:bg-background/60">
                 <div className="flex items-center gap-3">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <Input
                       id="from-amount"
                       placeholder="0.0"
                       value={fromAmount}
                       onChange={(e) => handleFromAmountChange(e.target.value)}
-                      className="border-0 bg-transparent text-xl sm:text-2xl font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
+                      className="border-0 bg-transparent text-2xl sm:text-3xl font-semibold placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
                     />
                   </div>
                   <TokenSelector selectedToken={fromToken} onSelectToken={setFromToken} otherToken={toToken} />
@@ -845,43 +857,45 @@ function SwapPage() {
               </div>
             </div>
 
-            <div className="flex justify-center -my-2 sm:-my-3 relative z-10">
+            {/* Swap direction button */}
+            <div className="flex justify-center -my-2.5 relative z-10">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={handleTokenSwap}
                 disabled={!toToken}
-                className="rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-background bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                className="rounded-xl h-10 w-10 border-4 border-background bg-card text-foreground hover:bg-primary hover:text-primary-foreground shadow-lg transition-all"
                 aria-label="Swap tokens"
               >
-                <ArrowUpDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                <ArrowUpDown className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="space-y-2 sm:space-y-4 mt-2 sm:mt-0">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <Label htmlFor="to-amount" className="text-sm font-medium text-primary mb-1 sm:mb-0">
+            {/* TO */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <Label htmlFor="to-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.swap.to}
                 </Label>
                 {account && toToken && (
                   <span className="text-xs text-muted-foreground">
-                    {t.swap.balance}: {formatCurrency(Number(toBalance))}
+                    {t.swap.balance}: <span className="text-foreground/80">{formatCurrency(Number(toBalance))}</span>
                   </span>
                 )}
               </div>
 
-              <div className="rounded-xl bg-secondary p-3 sm:p-4 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+              <div className="rounded-2xl border border-border/40 bg-background/40 p-4 transition-all focus-within:border-primary/50 focus-within:bg-background/60">
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 relative">
+                  <div className="flex-1 min-w-0 relative">
                     {isLoadingQuote && activeInput === "from" ? (
-                      <Skeleton className="h-8 sm:h-9 w-full bg-muted/50" />
+                      <Skeleton className="h-9 w-2/3 bg-muted/50" />
                     ) : (
                       <Input
                         id="to-amount"
                         placeholder="0.0"
                         value={toAmount}
                         onChange={(e) => handleToAmountChange(e.target.value)}
-                        className="border-0 bg-transparent text-xl sm:text-2xl font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
+                        className="border-0 bg-transparent text-2xl sm:text-3xl font-semibold placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
                         disabled={isLoadingQuote && activeInput === "from"}
                       />
                     )}
@@ -892,20 +906,20 @@ function SwapPage() {
             </div>
 
             {isLoadingQuote && (
-              <div className="flex justify-center py-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex justify-center py-3 mt-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
                   <span>{activeInput === "from" ? "Calculating output amount..." : "Calculating input amount..."}</span>
                 </div>
               </div>
             )}
 
             {quoteError && (
-              <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <div className="mt-4 rounded-xl bg-destructive/10 p-3.5 text-sm text-destructive border border-destructive/20">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p>{quoteError}</p>
+                    <p className="font-medium">{quoteError}</p>
                     {(quoteError.includes("No liquidity") || quoteError.includes("NO_ROUTE_FOUND")) && (
                       <p className="text-xs mt-1 opacity-80">
                         You can create a new liquidity pool by adding liquidity in the Pool section.
@@ -917,20 +931,28 @@ function SwapPage() {
             )}
 
             {(currentTrade || (fromAmount && toAmount && exchangeRate > 0)) && (
-              <div className="space-y-3 p-4 bg-secondary/50 rounded-lg border border-border/50 mt-8">
-                <div className="flex justify-between text-sm">
+              <div className="mt-5 rounded-2xl border border-border/40 bg-background/30 p-4 space-y-2.5">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Price Impact</span>
-                  <span className="text-foreground">
+                  <span
+                    className={`font-medium ${
+                      currentTrade && currentTrade.priceImpact > 3
+                        ? "text-destructive"
+                        : currentTrade && currentTrade.priceImpact > 1
+                        ? "text-[hsl(40_100%_60%)]"
+                        : "text-foreground"
+                    }`}
+                  >
                     {currentTrade ? `${currentTrade.priceImpact.toFixed(3)}%` : "< 0.01%"}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Slippage Tolerance</span>
-                  <span className="text-foreground">{slippage}%</span>
+                  <span className="font-medium text-foreground">{slippage}%</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Minimum Received</span>
-                  <span className="text-foreground">
+                  <span className="font-medium text-foreground">
                     {(() => {
                       if (currentTrade && currentTrade.outputAmount) {
                         try {
@@ -955,21 +977,21 @@ function SwapPage() {
                     })()}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Network Fee</span>
-                  <span className="text-foreground">~${networkFee}</span>
+                  <span className="font-medium text-foreground">~${networkFee}</span>
                 </div>
               </div>
             )}
 
-            <div className="mt-6">
+            <div className="mt-5">
               {!isConnected ? (
-                <Button className="w-full py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground" disabled>
+                <Button className="w-full h-14 text-base font-semibold rounded-2xl bg-muted text-muted-foreground hover:bg-muted/80 cursor-not-allowed" disabled>
                   Connect your wallet to continue
                 </Button>
               ) : !isApproved && !isApprovedForKayen && fromToken && fromToken.address !== ethers.ZeroAddress ? (
                 <Button
-                  className="w-full py-6 text-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground"
+                  className="w-full h-14 text-base font-semibold rounded-2xl bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50"
                   onClick={handleApprove}
                   disabled={isApproving || !fromToken || !fromAmount || Number(fromAmount) === 0}
                 >
@@ -984,7 +1006,7 @@ function SwapPage() {
                 </Button>
               ) : (
                 <Button
-                  className="w-full py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="w-full h-14 text-base font-semibold rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
                   onClick={handleSwap}
                   disabled={
                     isSwapping ||
@@ -1012,17 +1034,20 @@ function SwapPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-center mt-8">
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {t.home.poweredBy ?? "Powered by"}
+          </span>
           <a
             href="https://www.chiliz.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg"
+            className="transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
           >
             <img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-jKLx0f8SHem72P4rTOAS2E5OtISne0.png"
               alt="Built on Chiliz Chain - No affiliation with or endorsement by Chiliz"
-              className="h-16 w-auto"
+              className="h-12 w-auto"
             />
           </a>
         </div>
